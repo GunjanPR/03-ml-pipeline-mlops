@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Project-specific: data, MLflow, DVC, reports
+data/*
+!data/*.dvc
+mlruns/
+mlartifacts/
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+models/
+*.pkl
+*.joblib
+reports/
+kubeconfig*
