@@ -31,6 +31,8 @@ def settings(tmp_path) -> Settings:
     return Settings(
         data_dir=tmp_path / "data",
         reports_dir=tmp_path / "reports",
+        inference_log_path=tmp_path / "logs" / "inference.jsonl",
+        optuna_n_trials=3,
         mlflow_tracking_uri=f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}",
         _env_file=None,
     )

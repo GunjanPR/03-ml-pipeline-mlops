@@ -26,9 +26,19 @@ class Settings(BaseSettings):
     min_auc_lift: float = 0.01
     drift_threshold: float = 0.3
 
+    # Model the API serves; empty = models:/<REGISTERED_MODEL_NAME>@champion
+    model_uri: str = ""
+    # Each /predict call appends its inputs and outputs here (JSON lines), for drift monitoring
+    inference_log_path: Path = Path("./logs/inference.jsonl")
+    max_batch_size: int = 1000
+
     api_host: str = "0.0.0.0"
     api_port: int = 8020
     log_level: str = "info"
+
+    @property
+    def resolved_model_uri(self) -> str:
+        return self.model_uri or f"models:/{self.registered_model_name}@champion"
 
     @property
     def raw_dir(self) -> Path:
