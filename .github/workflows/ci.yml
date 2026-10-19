@@ -53,7 +53,10 @@ jobs:
           path: data/raw
           key: uci-diabetes-130-v1
       - name: dvc repro
-        run: dvc repro
+        # --force: dvc.lock matches the committed sources, so a plain `dvc repro` would skip
+        # training and check the committed metrics. CI must retrain (the MLflow registry is
+        # empty on a fresh runner) to test the pipeline itself.
+        run: dvc repro --force
       - name: Quality floor and gate summary
         run: |
           python - <<'PY'
