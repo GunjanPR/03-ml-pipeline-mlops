@@ -61,3 +61,21 @@ stages:
     metrics:
       - reports/gate.json:
           cache: false
+
+  # Calibration, top-k capture and subgroup metrics (age, sex, race) for both models on
+  # the same test rows. Writes reports/audit.md; see src/ml_pipeline/audit.py.
+  audit:
+    cmd: python -m ml_pipeline.audit
+    deps:
+      - data/processed
+      - reports/baseline_metrics.json
+      - reports/xgboost_metrics.json
+      - src/ml_pipeline/audit.py
+    params:
+      - random_seed
+    metrics:
+      - reports/audit.json:
+          cache: false
+    outs:
+      - reports/audit.md:
+          cache: false

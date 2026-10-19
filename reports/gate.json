@@ -2,17 +2,16 @@
   "challenger_version": 2,
   "reference_version": 1,
   "reference_kind": "baseline",
-  "challenger_auc": 0.671665553344214,
-  "reference_auc": 0.668192079112464,
-  "auc_lift": 0.003473474231749929,
-  "auc_lift_ci_low": -0.004064332482562607,
-  "auc_lift_ci_high": 0.010823445890975482,
-  "challenger_brier": 0.09361519664525986,
-  "reference_brier": 0.09447030046269969,
+  "challenger_auc": 0.6765393806254346,
+  "reference_auc": 0.667882001593084,
+  "auc_lift": 0.008657379032350643,
+  "auc_lift_ci_low": 0.0013911410685287146,
+  "auc_lift_ci_high": 0.01597995016911848,
+  "challenger_brier": 0.09331092238426208,
+  "reference_brier": 0.09447092199983693,
   "min_auc_lift": 0.01,
   "passed": false,
   "reasons": [
-    "AUC lift +0.0035 < required +0.0100",
-    "lift CI lower bound -0.0041 is not above 0"
+    "AUC lift +0.0087 < required +0.0100"
   ]
 }

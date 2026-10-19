@@ -3,8 +3,9 @@ groups:
   - name: readmission-api
     rules:
       - alert: FeatureDriftDetected
-        # Set by `python -m ml_pipeline.monitor` (Evidently): share of drifted features at or
-        # above DRIFT_THRESHOLD (0.3). Action: run the drift-triggered retrain + gate.
+        # Set by `python -m ml_pipeline.monitor` (Evidently): the last batch raised the drift
+        # alarm (drifted-feature share >= DRIFT_THRESHOLD, a key feature drifted, or the
+        # predicted-probability distribution drifted). Action: retrain the challenger + gate.
         expr: mlp_drift_detected == 1
         labels: {severity: warning}
         annotations:
@@ -41,7 +42,9 @@ groups:
         annotations:
           summary: "More than 5 rejected /predict calls (model not ready or oversized batch) in 5 minutes"
       - alert: ApiDown
-        expr: up{job=~"readmission-api.*"} == 0
+        # Two scrape jobs exist (compose and host) and normally only one runs, so alert only
+        # when no instance answers. Per-target `up == 0` fired permanently for the idle job.
+        expr: sum(up{job=~"readmission-api.*"}) == 0
         for: 2m
         labels: {severity: critical}
         annotations:

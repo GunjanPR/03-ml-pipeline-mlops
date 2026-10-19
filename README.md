@@ -10,9 +10,13 @@ reproducible with one command.
 **Results at a glance**
 
 * **The promotion gate did its job.** A 50-trial Optuna-tuned XGBoost reached test ROC-AUC
-  0.672 vs 0.668 for the logistic-regression baseline on 14,851 held-out encounters. The
-  paired-bootstrap 95% CI for the lift is [-0.004, +0.011], so the gate kept the simpler
-  model in production.
+  0.677 vs 0.668 for the logistic-regression baseline on 14,851 held-out encounters. The
+  lift is real (paired-bootstrap 95% CI [+0.001, +0.016]) but below the +0.01 the gate
+  requires to swap models, so the simpler model stays in production.
+* **Audited, not just scored.** Both models are well calibrated (ECE 0.0075 and 0.0039).
+  Flagging the top 10% of risk scores catches 24-25% of readmissions, 2.4-2.5× random. The
+  largest subgroup gap is age, not race or sex: AUC 0.745 under 40 vs 0.619 over 80 for the
+  baseline. Dropping race as a feature changes AUC by 0.0002.
 * **Drift detection within one batch.** Over 20 batches of 1,000 encounters per scenario,
   the alarm rule caught 4 of 5 simulated shifts in 20/20 batches, with 0/20 false alarms on
   unshifted data. The usual "share of drifted features" rule alone caught none of them.
@@ -21,8 +25,10 @@ reproducible with one command.
   gate promoted it (lift +0.061, CI [+0.048, +0.074]).
 * **Fast serving.** A verified fast encoding path cut server-side `/predict` time for one
   record by 30× (about 21 ms → 0.70 ms). End-to-end p50 is 3.2 ms on the host.
-* **Reproducible.** `dvc repro` rebuilt the pipeline from the raw download and reproduced
-  every metric to four decimals.
+* **Reproducible, with the limits measured.** `dvc repro` on Linux rebuilt the pipeline
+  from the raw download with bit-identical processed data and the baseline within 0.0003
+  AUC of the Windows run. The 50-trial XGBoost search did not reproduce (0.672 on Windows,
+  0.677 on Linux); see [Reproducibility](#reproducibility).
 
 ## Overview
 
@@ -161,7 +167,9 @@ python -m ml_pipeline.monitor --retrain   # drift-triggered job: retrain challen
 ### Lint and test
 ```bash
 make lint     # ruff check + ruff format --check
-make test     # pytest: 57 tests, no network or Docker needed
+make test     # pytest: 63 tests, no network or Docker needed
+make coverage # the same with line coverage (73%; fails below 70%)
+make audit    # calibration, top-k and subgroup report -> reports/audit.md
 make format   # auto-fix lint and formatting
 ```
 
@@ -176,14 +184,18 @@ scored once. ROC-AUC CIs are 1,000-sample bootstraps. Hardware: Intel Core i5-13
 
 | Model | Test ROC-AUC (95% CI) | PR-AUC | F1 @ val threshold | Brier | Fit time | Predict |
 |---|---|---|---|---|---|---|
-| **Logistic regression (baseline, champion)** | 0.668 (0.654-0.682) | 0.220 | 0.274 | 0.0945 | 3.2 s | 8.6 ms / 1k rows |
-| XGBoost, 50 Optuna trials | 0.672 (0.658-0.686) | 0.235 | 0.288 | 0.0936 | 198 s | 12.2 ms / 1k rows |
+| **Logistic regression (baseline, champion)** | 0.668 (0.653-0.681) | 0.220 | 0.273 | 0.0945 | 3.2 s | 8.6 ms / 1k rows |
+| XGBoost, 50 Optuna trials | 0.677 (0.663-0.691) | 0.239 | 0.286 | 0.0933 | 198 s | 12.2 ms / 1k rows |
 
-**Gate decision: blocked.** The AUC lift is +0.0035 with paired-bootstrap 95% CI
-[-0.0041, +0.0108]. That fails both rules: the lift is below the required +0.01 and the CI
-includes zero. The champion stays the logistic regression, which is 60x cheaper to train,
-fully interpretable and statistically no worse. That is the gate working as designed. The
-6.9% PR-AUC gain is visible, but it is not enough to justify a model swap on its own.
+Metrics are from the committed `dvc repro` (`reports/*_metrics.json`, Linux, 2026-10-19).
+Fit and predict times are from the Windows laptop run (`reports/history/v2_windows_*`),
+because the Linux run shared four vCPUs with another job.
+
+**Gate decision: blocked.** The AUC lift is +0.0087 with paired-bootstrap 95% CI
+[+0.0014, +0.0160]. XGBoost is measurably better, but the lift is below the +0.01 the gate
+requires before it swaps a production model. The champion stays the logistic regression,
+which is about 60x cheaper to train and fully interpretable. That is the gate working as
+designed: a statistically real but small gain is not enough on its own.
 
 What did not help (measured, kept for honesty):
 
@@ -195,6 +207,65 @@ What did not help (measured, kept for honesty):
 This matches published work on this dataset, where ROC-AUC tops out around 0.65-0.70: the
 remaining signal is not in these administrative fields. SHAP puts discharge disposition,
 prior inpatient stays, missing payer code and missing specialty at the top for both models.
+
+### Calibration, decision value and subgroups (`reports/audit.md`)
+
+ROC-AUC says how well a model ranks patients. Before a score decides who gets a follow-up
+call, `python -m ml_pipeline.audit` (a DVC stage after the gate) checks three more things on
+the same test rows: calibration, how many readmissions a fixed-size follow-up list catches,
+and the same metrics by age band, sex and race with bootstrap 95% CIs.
+
+| Model | ECE | Predicted / observed risk | Top 10% of scores: recall, precision, lift | Top 20% |
+|---|---|---|---|---|
+| Logistic regression | 0.0075 | 1.035 | 23.7%, 26.3%, 2.37× | 38.3%, 21.3%, 1.92× |
+| XGBoost | 0.0039 | 1.023 | 25.4%, 28.2%, 2.54× | 40.4%, 22.4%, 2.02× |
+
+Subgroups (logistic regression, deployed threshold 0.132):
+
+| Group | n | Readmitted | ROC-AUC (95% CI) | Sensitivity (95% CI) |
+|---|---|---|---|---|
+| Age < 40 | 943 | 11.1% | 0.745 (0.691-0.803) | 0.533 (0.430-0.626) |
+| Age 40-59 | 4,008 | 10.5% | 0.701 (0.673-0.726) | 0.391 (0.348-0.438) |
+| Age 60-79 | 7,031 | 11.2% | 0.656 (0.635-0.675) | 0.446 (0.413-0.482) |
+| Age 80+ | 2,869 | 11.8% | 0.619 (0.587-0.652) | 0.475 (0.422-0.527) |
+| Female / Male | 7,990 / 6,861 | 11.0% / 11.3% | 0.676 / 0.659 | 0.466 / 0.419 |
+| African American / Caucasian | 2,764 / 11,177 | 10.4% / 11.4% | 0.675 / 0.663 | 0.451 / 0.447 |
+
+- **Calibration is good for both models**: a predicted 11% means about 11%, overall and in
+  every subgroup with enough readmissions (predicted/observed 0.97-1.12).
+- **Age is the real gap.** Ranking gets steadily worse with age (AUC 0.745 → 0.619), so the
+  score is least useful for the oldest patients, who are readmitted most. XGBoost narrows the
+  gap a little (0.761 → 0.646, gap 0.116 vs 0.126). Sex and race gaps are small (AUC within
+  0.017 and 0.012) and their CIs overlap.
+- **Race-blind ablation** (`train --exclude race`, `reports/audit_race_ablation.md`): AUC
+  0.6679 → 0.6677 and unchanged subgroup gaps. The model gets almost nothing from race, so it
+  can be dropped at no cost. Asian, Hispanic, Other and missing-race groups have fewer than 30
+  readmissions in the test set, so their AUC is not reported; their sensitivity CIs are wide.
+
+### Reproducibility
+
+The committed reports are from `dvc repro` on Linux (Python 3.11) from the raw UCI download.
+The previous reports came from the Windows laptop and are kept in `reports/history/v2_windows_*`.
+
+| | Windows laptop | Linux re-run |
+|---|---|---|
+| Raw and processed data (DVC md5) | identical | identical |
+| Logistic regression test AUC | 0.6682 | 0.6679 |
+| XGBoost, 50 Optuna trials, test AUC | 0.6717 | 0.6765 |
+| Gate lift (95% CI) | +0.0035 (-0.004, +0.011) | +0.0087 (+0.001, +0.016) |
+| Gate decision | blocked | blocked |
+
+The tuned XGBoost differs because the search took a different path. The TPE sampler is
+seeded, but XGBoost's multithreaded `hist` training gives slightly different validation AUCs
+on different CPUs and thread counts. After a few trials the sampler proposes different
+parameters (best found: depth 5, 77 trees on Windows; depth 6, 291 trees on Linux; inferred
+from the logged parameters). So **one tuned run moves test AUC by about 0.005**. That is as
+large as the Windows lift, and it is why the gate asks for a +0.01 minimum lift on top of a
+CI that excludes zero.
+
+The old `dvc.lock` also hashed Windows CRLF copies of the source files, so `dvc status` on a
+fresh clone reported every stage as changed. The lock now matches the LF files in git
+(`.gitattributes` sets `eol=lf`).
 
 ### Drift monitoring (`reports/drift_simulation.md`)
 
@@ -290,6 +361,8 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 - [x] Unit tests for features, validation, and API
 - [x] Model quality gate vs baseline (blocks registry promotion)
 - [x] Evaluation report on held-out test set
+- [x] Calibration, top-k and subgroup audit (age, sex, race) with bootstrap CIs; race-blind ablation
+- [x] Prometheus alert rules unit-tested with `promtool test rules` in CI
 
 ### M5: Observability / monitoring
 - [x] Evidently drift reports on inference logs
@@ -317,12 +390,13 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 │   ├── evaluate.py      # ROC-AUC, PR-AUC, F1, Brier, bootstrap CI
 │   ├── train.py         # baseline + XGBoost/Optuna, SHAP, MLflow registration
 │   ├── promote.py       # champion/challenger gate (paired bootstrap)
+│   ├── audit.py         # calibration, top-k capture, subgroup metrics with CIs
 │   ├── export.py        # champion -> serving bundle
 │   ├── serve.py         # FastAPI service, Prometheus metrics, async inference log
 │   ├── fastpath.py      # verified low-latency encoder for small requests
 │   ├── monitor.py       # Evidently drift check + alarm rules + retrain trigger
 │   └── simulate.py      # drift scenarios, end-to-end loop, retrain demo
-├── tests/               # 57 tests: data, validation, training, gate, API, fast path, drift
+├── tests/               # 63 tests: data, validation, training, gate, API, fast path, drift, audit
 ├── dvc.yaml, dvc.lock, params.yaml
 ├── reports/             # committed metrics JSON, gate decision, drift simulation
 ├── deploy/              # Prometheus config + alert rules, Grafana dashboard
