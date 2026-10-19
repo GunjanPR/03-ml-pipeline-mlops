@@ -6,8 +6,12 @@ An end-to-end model lifecycle: validated data, training, MLflow registry, a Fast
 
 ## Overview
 
-This project shows production ML habits on a public tabular classification problem, such
-as clinical readmission or credit risk from UCI/Kaggle. The pipeline covers the whole
+This project shows production ML habits on a public tabular classification problem:
+predicting **30-day hospital readmission** for diabetic inpatients, using the
+[UCI Diabetes 130-US Hospitals (1999–2008)](https://archive.ics.uci.edu/dataset/296)
+dataset (101,766 encounters, 71,518 patients). Encounters that ended in death or hospice are
+dropped (they cannot be readmitted), leaving 99,343. Train / val / test (70 / 15 / 15) are
+split **by patient**, so no patient appears in two splits. The pipeline covers the whole
 lifecycle:
 
 - Data versioned with **DVC** and validated with **Pandera**
@@ -90,10 +94,12 @@ thresholds here too.
 
 ### Run the pipeline
 ```bash
-make mlflow-ui                        # MLflow UI on http://localhost:5000 (optional, separate terminal)
+make data                             # download (once), clean, patient-grouped split -> data/processed/
 make run                              # = python -m ml_pipeline.train  (later: dvc repro)
+make mlflow-ui                        # MLflow UI on http://localhost:5000 (SQLite store: mlflow.db)
 ```
-> `make run` starts working at **M2**, once `src/ml_pipeline/train.py` is added.
+`make run` prepares the data itself if `data/processed/` is empty. Metrics go to MLflow and to
+`reports/<model>_metrics.json`.
 
 ### Serve the model (M2+) and deploy (M6)
 ```bash
@@ -115,7 +121,19 @@ make format   # auto-fix lint and formatting
 - **MLOps checks:** one command reproduces the retrain; drift on a simulated shift is
   detected within one batch; the CI quality gate blocks promotion of models that perform
   worse.
-- **Results:** *targets until measured*.
+- **Threshold:** the F1 decision threshold is chosen on validation and applied once to test.
+
+### Measured baseline (M1)
+
+Logistic regression on scaled counts + one-hot categoricals (ICD-9 codes grouped as in
+Strack et al., 2014). Test set: 14,851 encounters, 11.1% readmitted within 30 days.
+
+| Model | ROC-AUC (95% CI) | PR-AUC | F1 | Brier | Fit | Predict |
+|---|---|---|---|---|---|---|
+| Logistic regression (baseline) | 0.668 (0.653–0.681) | 0.223 | 0.276 | 0.094 | 2.6 s | 7.5 ms / 1k rows |
+
+Measured 2026-10-19 on a laptop CPU (Python 3.11, scikit-learn). CI is a 1,000-sample bootstrap.
+Results for the tuned models are *targets until measured*.
 
 ## Milestones
 
@@ -124,7 +142,7 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 ### M1: Scaffold & baseline
 - [x] Repo scaffold: `pyproject.toml`, Makefile, `.gitignore`, `.env.example`
 - [x] Smoke test passes (`make test`)
-- [ ] Dataset chosen; baseline logistic regression trained and scored
+- [x] Dataset chosen; baseline logistic regression trained and scored
 
 ### M2: Core functionality
 - [ ] Feature engineering + XGBoost training with Optuna search
@@ -159,8 +177,13 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 ## Project Layout
 ```
 03-ml-pipeline-mlops/
-├── src/ml_pipeline/__init__.py
-├── tests/test_smoke.py
+├── src/ml_pipeline/
+│   ├── config.py        # pydantic-settings (reads .env)
+│   ├── data.py          # fetch, clean, patient-grouped split
+│   ├── features.py      # shared preprocessing
+│   ├── evaluate.py      # ROC-AUC, PR-AUC, F1, Brier, bootstrap CI
+│   └── train.py         # train + MLflow logging
+├── tests/
 ├── .env.example
 ├── .gitignore
 ├── Makefile

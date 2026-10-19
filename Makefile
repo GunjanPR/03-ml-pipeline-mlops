@@ -1,7 +1,7 @@
 # Windows: install make with `choco install make`, or run from Git Bash.
 PYTHON ?= python
 
-.PHONY: install lint format test run serve mlflow-ui
+.PHONY: install lint format test data run serve mlflow-ui
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -18,6 +18,9 @@ format:
 test:
 	$(PYTHON) -m pytest
 
+data:
+	$(PYTHON) -m ml_pipeline.data
+
 run:
 	$(PYTHON) -m ml_pipeline.train
 
@@ -25,4 +28,4 @@ serve:
 	$(PYTHON) -m uvicorn ml_pipeline.serve:app --reload --host 0.0.0.0 --port 8020
 
 mlflow-ui:
-	$(PYTHON) -m mlflow ui --port 5000
+	$(PYTHON) -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
