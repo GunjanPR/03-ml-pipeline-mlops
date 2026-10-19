@@ -2,89 +2,89 @@
   "model": "xgboost",
   "n_train": 69510,
   "params": {
-    "max_depth": 5,
-    "learning_rate": 0.11675452227854372,
-    "min_child_weight": 2.603287126713792,
-    "subsample": 0.5572627481040581,
-    "colsample_bytree": 0.6955218859771239,
-    "reg_lambda": 0.041405673943303,
-    "reg_alpha": 0.040992730474828126,
-    "gamma": 0.5631459697652828,
-    "n_estimators": 77,
+    "max_depth": 6,
+    "learning_rate": 0.042489860553126806,
+    "min_child_weight": 2.1538684602115685,
+    "subsample": 0.7755723159725406,
+    "colsample_bytree": 0.9697759684793388,
+    "reg_lambda": 0.08083274334618779,
+    "reg_alpha": 0.062459666434632764,
+    "gamma": 3.2044224658735105,
+    "n_estimators": 291,
     "optuna_trials": 50
   },
   "excluded_features": [],
   "val": {
-    "roc_auc": 0.6744475224979232,
-    "pr_auc": 0.23378158849932362,
-    "f1": 0.28651443343386473,
-    "brier": 0.09584268182516098,
-    "threshold": 0.15507619082927704,
+    "roc_auc": 0.6771483544549584,
+    "pr_auc": 0.23552798742388736,
+    "f1": 0.28875930022119445,
+    "brier": 0.09565357118844986,
+    "threshold": 0.15055827796459198,
     "positive_rate": 0.11393672406888265,
     "n": 14982
   },
   "test": {
-    "roc_auc": 0.671665553344214,
-    "pr_auc": 0.23509079573622416,
-    "f1": 0.2884406853177185,
-    "brier": 0.09361519664525986,
-    "threshold": 0.15507619082927704,
+    "roc_auc": 0.6765393806254346,
+    "pr_auc": 0.238695906236341,
+    "f1": 0.28559619756147964,
+    "brier": 0.09331092238426208,
+    "threshold": 0.15055827796459198,
     "positive_rate": 0.11110362938522658,
     "n": 14851,
-    "roc_auc_ci_low": 0.6580283617886477,
-    "roc_auc_ci_high": 0.6857560027400809
+    "roc_auc_ci_low": 0.6633627373299422,
+    "roc_auc_ci_high": 0.690524789380277
   },
-  "fit_seconds": 197.50886910001282,
-  "predict_ms_per_1k_rows": 12.239357618986656,
+  "fit_seconds": 2629.0848271,
+  "predict_ms_per_1k_rows": 15.75886465558599,
   "top_features": [
     {
-      "feature": "discharge_disposition_id_2",
-      "mean_abs_shap": 0.567905068397522
-    },
-    {
-      "feature": "discharge_disposition_id_22",
-      "mean_abs_shap": 0.5237743258476257
-    },
-    {
       "feature": "discharge_disposition_id_28",
-      "mean_abs_shap": 0.3670855164527893
+      "mean_abs_shap": 0.8366934657096863
+    },
+    {
+      "feature": "payer_code_WC",
+      "mean_abs_shap": 0.3891546428203583
+    },
+    {
+      "feature": "diag_2_group_neoplasms",
+      "mean_abs_shap": 0.33214297890663147
+    },
+    {
+      "feature": "medical_specialty_Otolaryngology",
+      "mean_abs_shap": 0.28840261697769165
+    },
+    {
+      "feature": "medical_specialty_Neurology",
+      "mean_abs_shap": 0.2697129547595978
     },
     {
       "feature": "discharge_disposition_id_infrequent_sklearn",
-      "mean_abs_shap": 0.3498525023460388
-    },
-    {
-      "feature": "discharge_disposition_id_1",
-      "mean_abs_shap": 0.2456873655319214
-    },
-    {
-      "feature": "medical_specialty_Orthopedics-Reconstructive",
-      "mean_abs_shap": 0.20058809220790863
+      "mean_abs_shap": 0.2675476670265198
     },
     {
       "feature": "number_inpatient",
-      "mean_abs_shap": 0.20040826499462128
+      "mean_abs_shap": 0.26613402366638184
     },
     {
-      "feature": "diag_1_group_diabetes",
-      "mean_abs_shap": 0.18147660791873932
+      "feature": "discharge_disposition_id_1",
+      "mean_abs_shap": 0.26044198870658875
     },
     {
-      "feature": "diag_1_group_other",
-      "mean_abs_shap": 0.1810544729232788
+      "feature": "discharge_disposition_id_2",
+      "mean_abs_shap": 0.23871168494224548
     },
     {
-      "feature": "payer_code_PO",
-      "mean_abs_shap": 0.17987371981143951
+      "feature": "discharge_disposition_id_22",
+      "mean_abs_shap": 0.2341960072517395
     }
   ],
   "key_features": [
-    "discharge_disposition_id",
     "medical_specialty",
+    "discharge_disposition_id",
     "payer_code",
-    "diag_1_group",
+    "diag_2_group",
     "diag_3_group"
   ],
-  "mlflow_run_id": "8080cf696f384c1bb7087b26aed3d8ea",
+  "mlflow_run_id": "9c8f070c6a6e41df98e7932ae18f5583",
   "registered_version": 2
 }

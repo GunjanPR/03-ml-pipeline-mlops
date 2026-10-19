@@ -1,7 +1,7 @@
 # Windows: install make with `choco install make`, or run from Git Bash.
 PYTHON ?= python
 
-.PHONY: install lint format test data run train-xgboost gate repro monitor simulate bundle up down k8s-deploy k8s-delete serve mlflow-ui
+.PHONY: install lint format test coverage audit data run train-xgboost gate repro monitor simulate bundle up down k8s-deploy k8s-delete serve mlflow-ui
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -17,6 +17,12 @@ format:
 
 test:
 	$(PYTHON) -m pytest
+
+coverage:                   # tests with line coverage; fails below 70%
+	$(PYTHON) -m pytest --cov=ml_pipeline --cov-report=term-missing:skip-covered --cov-fail-under=70
+
+audit:                      # calibration, top-k capture and subgroup metrics -> reports/audit.md
+	$(PYTHON) -m ml_pipeline.audit
 
 data:
 	$(PYTHON) -m ml_pipeline.data prepare

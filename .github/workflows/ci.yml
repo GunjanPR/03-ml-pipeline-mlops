@@ -20,7 +20,18 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - run: make lint
-      - run: make test
+      - run: make coverage
+
+  alert-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check Prometheus config and unit-test the alert rules
+        run: |
+          docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p --entrypoint promtool \
+            prom/prometheus:v2.54.1 check rules alerts.yml
+          docker run --rm -v "$PWD/deploy/prometheus:/p" -w /p --entrypoint promtool \
+            prom/prometheus:v2.54.1 test rules alerts_test.yml
 
   train-and-gate:
     # Full DVC pipeline on the real dataset: download -> validate -> train baseline and
@@ -42,7 +53,10 @@ jobs:
           path: data/raw
           key: uci-diabetes-130-v1
       - name: dvc repro
-        run: dvc repro
+        # --force: dvc.lock matches the committed sources, so a plain `dvc repro` would skip
+        # training and check the committed metrics. CI must retrain (the MLflow registry is
+        # empty on a fresh runner) to test the pipeline itself.
+        run: dvc repro --force
       - name: Quality floor and gate summary
         run: |
           python - <<'PY'

@@ -2,7 +2,8 @@
 
 A real session on the development laptop (Intel Core i5-13420H, Windows 11, Docker
 Desktop 29.8), recorded on 2026-10-19. Outputs are copied from the terminal; long
-JSON is shortened where marked.
+JSON is shortened where marked. The committed reports now come from a later Linux re-run
+(XGBoost 0.6765, gate still blocked); see the README's Reproducibility section.
 
 ## 1. Reproduce the pipeline
 

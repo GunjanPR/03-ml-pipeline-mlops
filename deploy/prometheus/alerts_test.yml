@@ -1,0 +1,112 @@
+# promtool test rules deploy/prometheus/alerts_test.yml  (run in CI)
+rule_files:
+  - alerts.yml
+evaluation_interval: 15s
+tests:
+  # One deployment up, the other scrape job idle: no alert (this fired before the fix).
+  - interval: 15s
+    input_series:
+      - series: 'up{job="readmission-api",deployment="compose"}'
+        values: '1x20'
+      - series: 'up{job="readmission-api-host",deployment="host"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: ApiDown
+        exp_alerts: []
+  # Both down for over 2 minutes: alert.
+  - interval: 15s
+    input_series:
+      - series: 'up{job="readmission-api",deployment="compose"}'
+        values: '1 1 0x20'
+      - series: 'up{job="readmission-api-host",deployment="host"}'
+        values: '0x22'
+    alert_rule_test:
+      - eval_time: 90s
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations:
+              summary: "Readmission API target is down"
+  - interval: 1m
+    input_series:
+      - series: 'mlp_drift_detected{job="readmission-api"}'
+        values: '0 0 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: FeatureDriftDetected
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: FeatureDriftDetected
+        exp_alerts:
+          - exp_labels: {severity: warning, job: readmission-api}
+            exp_annotations:
+              summary: "Input drift: 1 - retrain the challenger and run the promotion gate"
+  # Last check at t=0; still fresh at 25 h, stale at 27 h.
+  - interval: 1h
+    input_series:
+      - series: 'mlp_drift_last_check_timestamp{job="readmission-api"}'
+        values: '0x30'
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: DriftCheckStale
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: DriftCheckStale
+        exp_alerts:
+          - exp_labels: {severity: warning, job: readmission-api}
+            exp_annotations:
+              summary: "No drift check in the last 26 hours"
+  # 25% of encounters flagged is normal; 80% for over 30 minutes is not.
+  - interval: 1m
+    input_series:
+      - series: 'mlp_predictions_total'
+        values: '0+100x150'
+      - series: 'mlp_positive_predictions_total'
+        values: '0+25x60 1500+80x90'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: FlagRateShift
+        exp_alerts: []
+      - eval_time: 150m
+        alertname: FlagRateShift
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "Share of encounters flagged as high risk is outside 5-60%"
+  # p95 latency: 3 ms is fine; 400 ms for over 5 minutes alerts.
+  - interval: 1m
+    input_series:
+      - series: 'mlp_predict_latency_seconds_bucket{le="0.005"}'
+        values: '0+100x10 1000x15'
+      - series: 'mlp_predict_latency_seconds_bucket{le="0.5"}'
+        values: '0+100x10 1000+100x15'
+      - series: 'mlp_predict_latency_seconds_bucket{le="+Inf"}'
+        values: '0+100x10 1000+100x15'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: PredictLatencyHigh
+        exp_alerts: []
+      - eval_time: 22m
+        alertname: PredictLatencyHigh
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "/predict p95 latency above 250 ms"
+  - interval: 1m
+    input_series:
+      - series: 'mlp_predict_errors_total{reason="not_ready"}'
+        values: '0 1 2 3 12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: PredictErrors
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: PredictErrors
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations:
+              summary: "More than 5 rejected /predict calls (model not ready or oversized batch) in 5 minutes"
