@@ -25,8 +25,8 @@
     "roc_auc_ci_low": 0.6536654591574543,
     "roc_auc_ci_high": 0.6814620739090057
   },
-  "fit_seconds": 2.7262749999645166,
-  "predict_ms_per_1k_rows": 7.67154400721975,
+  "fit_seconds": 3.1521746999933384,
+  "predict_ms_per_1k_rows": 8.597535518899889,
   "top_features": [
     {
       "feature": "discharge_disposition_id_1",
@@ -69,6 +69,13 @@
       "mean_abs_shap": 0.05416870313620145
     }
   ],
-  "mlflow_run_id": "21c1e78d53b04cd38572bde2d7efdab3",
+  "key_features": [
+    "discharge_disposition_id",
+    "medical_specialty",
+    "payer_code",
+    "diag_2_group",
+    "number_inpatient"
+  ],
+  "mlflow_run_id": "04a402227de34a65875caadf7bf461e9",
   "registered_version": 1
 }

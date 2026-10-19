@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: readmission-config
+  namespace: readmission
+data:
+  MODEL_BUNDLE: /app/model_bundle
+  REPORTS_DIR: /app/reports
+  DRIFT_THRESHOLD: "0.3"
+  MAX_BATCH_SIZE: "1000"
+  LOG_LEVEL: info
+  MLFLOW_DISABLE_AGENT_HINT: "1"

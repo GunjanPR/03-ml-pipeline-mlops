@@ -1,0 +1,121 @@
+scenario,batch,drift_share,drifted,share_rule,key_feature_rule,prediction_drifted,drifted_columns,roc_auc,positive_rate,mean_prediction
+no_shift,0,0.0,False,False,False,False,,0.6944275052995326,0.117,0.11640292929125032
+no_shift,1,0.0,False,False,False,False,,0.6945998213526896,0.133,0.11487629015702401
+no_shift,2,0.0,False,False,False,False,,0.6878044433883806,0.114,0.11606866720435136
+no_shift,3,0.0,False,False,False,False,,0.6459856996935648,0.11,0.11462879138852092
+no_shift,4,0.0,False,False,False,False,,0.6564555669050052,0.11,0.11501082455571889
+no_shift,5,0.0,False,False,False,False,,0.6820744081172492,0.113,0.11531110835753285
+no_shift,6,0.0,False,False,False,False,,0.6600999199424397,0.111,0.11446939066766397
+no_shift,7,0.0,False,False,False,False,,0.7093505203741424,0.111,0.11565500173113127
+no_shift,8,0.0,False,False,False,False,,0.6661478150582266,0.118,0.11655808298286456
+no_shift,9,0.0,False,False,False,False,,0.6989247311827956,0.093,0.1142150198320833
+no_shift,10,0.0,False,False,False,False,,0.6656546303119626,0.115,0.11137060259390624
+no_shift,11,0.0,False,False,False,False,,0.702982060116431,0.114,0.11697419186008298
+no_shift,12,0.0,False,False,False,False,,0.6600818876366552,0.106,0.11291603462580045
+no_shift,13,0.0,False,False,False,False,,0.6953672316384181,0.115,0.11647393996192058
+no_shift,14,0.0,False,False,False,False,,0.643109299422687,0.116,0.11723056591632712
+no_shift,15,0.0,False,False,False,False,,0.6868340979978824,0.119,0.11746101061581539
+no_shift,16,0.0,False,False,False,False,,0.6709111111111111,0.1,0.11568112245538327
+no_shift,17,0.0,False,False,False,False,,0.6892875503964067,0.127,0.11917775662470868
+no_shift,18,0.0,False,False,False,False,,0.6469060920457569,0.105,0.11397065669824687
+no_shift,19,0.0,False,False,False,False,,0.6731159307224217,0.116,0.11306368549108743
+older_sicker,0,0.1836734693877551,True,False,True,True,"age, discharge_disposition_id, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6345014786100199,0.133,0.1422327640204359
+older_sicker,1,0.24489795918367346,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.7157773326048685,0.133,0.1460520527865536
+older_sicker,2,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6265740788723636,0.161,0.14371449982918302
+older_sicker,3,0.1836734693877551,True,False,True,True,"age, discharge_disposition_id, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, total_prior_visits",0.6495182724252493,0.14,0.14408545167484613
+older_sicker,4,0.1836734693877551,True,False,True,True,"age, discharge_disposition_id, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6536870364174916,0.143,0.14549877953231743
+older_sicker,5,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, medical_specialty, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6355059060228453,0.144,0.1469959627433
+older_sicker,6,0.20408163265306123,True,False,True,True,"age, discharge_disposition_id, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6623411799468137,0.142,0.145664405063837
+older_sicker,7,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, total_prior_visits",0.6232476635514018,0.144,0.14813582587978408
+older_sicker,8,0.24489795918367346,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_medications, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6255619781631341,0.135,0.14389143138127386
+older_sicker,9,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6473671096345515,0.14,0.14316887650011312
+older_sicker,10,0.20408163265306123,True,False,True,True,"age, medical_specialty, num_procedures, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, total_prior_visits",0.6374133949191686,0.134,0.14156868810303758
+older_sicker,11,0.24489795918367346,True,False,True,True,"age, discharge_disposition_id, medical_specialty, number_diagnoses, number_emergency, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6348972211648267,0.148,0.14840068974546747
+older_sicker,12,0.20408163265306123,True,False,True,True,"age, discharge_disposition_id, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6563071444611979,0.146,0.1460879738894915
+older_sicker,13,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6730467098914594,0.147,0.14792111288291657
+older_sicker,14,0.20408163265306123,True,False,True,True,"age, discharge_disposition_id, medical_specialty, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, total_prior_visits",0.6542095953326712,0.152,0.14566923469567575
+older_sicker,15,0.1836734693877551,True,False,True,True,"age, discharge_disposition_id, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6340669211767347,0.146,0.1448203572908559
+older_sicker,16,0.20408163265306123,True,False,True,True,"age, discharge_disposition_id, num_procedures, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6665675905514412,0.141,0.14572843227776774
+older_sicker,17,0.16326530612244897,True,False,True,True,"age, number_diagnoses, number_inpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6128224167897447,0.143,0.14294122490838188
+older_sicker,18,0.20408163265306123,True,False,True,True,"age, discharge_disposition_id, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6438935404687447,0.138,0.14799308016409082
+older_sicker,19,0.22448979591836735,True,False,True,True,"age, discharge_disposition_id, num_procedures, number_diagnoses, number_inpatient, number_outpatient, payer_code, prior_encounters, prior_readmissions_30d, time_in_hospital, total_prior_visits",0.6308883648440241,0.143,0.14508818054736478
+emergency_intake,0,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6706029185867894,0.132,0.12081137742469332
+emergency_intake,1,0.12244897959183673,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures",0.6265539394276497,0.123,0.11945832197757084
+emergency_intake,2,0.16326530612244897,True,False,True,False,"admission_source_id, admission_type_id, diag_1_group, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.696487267830977,0.114,0.11682971530788853
+emergency_intake,3,0.16326530612244897,True,False,True,True,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses, number_emergency",0.7102451481103166,0.11,0.12324893875190622
+emergency_intake,4,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6614944977815655,0.139,0.11928297905016623
+emergency_intake,5,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.5864054035178736,0.113,0.1209297504165402
+emergency_intake,6,0.16326530612244897,True,False,True,False,"admission_source_id, admission_type_id, diag_1_group, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6227779118404118,0.112,0.11483210990899662
+emergency_intake,7,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6434444444444444,0.1,0.11802803199950722
+emergency_intake,8,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6833638237941748,0.117,0.12034210944153008
+emergency_intake,9,0.12244897959183673,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures",0.6974997914175265,0.123,0.11972541519966196
+emergency_intake,10,0.12244897959183673,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures",0.6886994850990794,0.116,0.12044857026639617
+emergency_intake,11,0.12244897959183673,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_procedures, number_diagnoses",0.7072662766480727,0.107,0.12033291172439252
+emergency_intake,12,0.10204081632653061,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, number_diagnoses",0.6527338899593235,0.135,0.12062640368464282
+emergency_intake,13,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, diag_1_group, medical_specialty, num_lab_procedures, num_medications, num_procedures",0.6597559637237982,0.113,0.11435166962018639
+emergency_intake,14,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6667284465449603,0.109,0.11648025468883401
+emergency_intake,15,0.14285714285714285,True,False,True,True,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6822727272727273,0.12,0.12182613029135314
+emergency_intake,16,0.12244897959183673,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_procedures, number_diagnoses",0.6793031149221035,0.121,0.12160904222019377
+emergency_intake,17,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6875071951104647,0.107,0.12029173643705382
+emergency_intake,18,0.08163265306122448,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures",0.6800740886995928,0.121,0.11888900390758937
+emergency_intake,19,0.14285714285714285,True,False,True,False,"admission_source_id, admission_type_id, medical_specialty, num_lab_procedures, num_medications, num_procedures, number_diagnoses",0.6767722165474974,0.11,0.1196505239906903
+icd10_migration,0,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6556969916344917,0.112,0.11198445475150065
+icd10_migration,1,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6929796118889706,0.115,0.10698729214058153
+icd10_migration,2,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6458719261922924,0.126,0.10993743587697423
+icd10_migration,3,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6863101888800213,0.105,0.10777708794990416
+icd10_migration,4,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6344086021505375,0.124,0.10835087042676418
+icd10_migration,5,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6245327896704044,0.109,0.11311900422880443
+icd10_migration,6,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.648997348668733,0.122,0.1118413225857606
+icd10_migration,7,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6801681098919696,0.121,0.10816125194539396
+icd10_migration,8,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6614620227274995,0.113,0.1113674106862031
+icd10_migration,9,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.7007724452323667,0.106,0.1133480725860785
+icd10_migration,10,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6809941815491205,0.099,0.10975962213282427
+icd10_migration,11,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.7121279999999999,0.125,0.11044364520385501
+icd10_migration,12,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6335178139052231,0.118,0.10973404738863078
+icd10_migration,13,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6601724688597892,0.101,0.11306673471307334
+icd10_migration,14,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6791048956271706,0.122,0.11035966831717443
+icd10_migration,15,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6721344857233359,0.098,0.11028962007477683
+icd10_migration,16,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6455400068681318,0.104,0.10760056719553325
+icd10_migration,17,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6647049285094289,0.119,0.1064391946513688
+icd10_migration,18,0.061224489795918366,True,False,True,True,"diag_1_group, diag_2_group, diag_3_group",0.6371461814886892,0.109,0.10546690761234767
+icd10_migration,19,0.061224489795918366,True,False,True,False,"diag_1_group, diag_2_group, diag_3_group",0.6764848958879808,0.119,0.1098162749591204
+lab_panel_change,0,0.02040816326530612,False,False,False,False,num_lab_procedures,0.645235216102356,0.116,0.12051190676602529
+lab_panel_change,1,0.02040816326530612,False,False,False,False,num_lab_procedures,0.7015689388736264,0.104,0.11694784119380094
+lab_panel_change,2,0.02040816326530612,False,False,False,False,num_lab_procedures,0.629653647752395,0.115,0.11460562345668382
+lab_panel_change,3,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6532154261852124,0.115,0.1175721839003412
+lab_panel_change,4,0.061224489795918366,False,False,False,False,"num_lab_procedures, time_in_hospital, total_prior_visits",0.6492588440458396,0.108,0.11231634468298367
+lab_panel_change,5,0.02040816326530612,False,False,False,False,num_lab_procedures,0.67626679154634,0.133,0.11262179021940398
+lab_panel_change,6,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6406936785742827,0.097,0.11755014682959447
+lab_panel_change,7,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6846783929123723,0.113,0.11928027340618823
+lab_panel_change,8,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6618555555555555,0.1,0.11508893401572086
+lab_panel_change,9,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6768704166016539,0.116,0.1161324692409813
+lab_panel_change,10,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6591177142857142,0.125,0.11674505950732729
+lab_panel_change,11,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6669937951120679,0.106,0.11679595419637155
+lab_panel_change,12,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6452846260320779,0.117,0.1128571372550335
+lab_panel_change,13,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6821476920389535,0.102,0.11614828838248617
+lab_panel_change,14,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6927818651819447,0.107,0.11504875450862388
+lab_panel_change,15,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6917989847495968,0.103,0.1135825588876972
+lab_panel_change,16,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6519063706563707,0.112,0.11604844788083117
+lab_panel_change,17,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6923864246698892,0.111,0.11713343636249783
+lab_panel_change,18,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6657000294594198,0.124,0.11607213153268339
+lab_panel_change,19,0.02040816326530612,False,False,False,False,num_lab_procedures,0.6287934935247308,0.116,0.11438984150181752
+discharge_code_remap,0,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5896200655328444,0.116,0.1504514542020397
+discharge_code_remap,1,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6181076691444085,0.093,0.1478874743513766
+discharge_code_remap,2,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6118585102960103,0.112,0.14889754806976735
+discharge_code_remap,3,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5939075394898988,0.122,0.15710313551396327
+discharge_code_remap,4,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5491465684527346,0.114,0.15212926628036597
+discharge_code_remap,5,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5918512340530689,0.109,0.15346805268850336
+discharge_code_remap,6,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5927884006584779,0.106,0.15141451623099414
+discharge_code_remap,7,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.584836077474809,0.117,0.14790804037313104
+discharge_code_remap,8,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6248229268824234,0.126,0.15029597048425722
+discharge_code_remap,9,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.644391455737247,0.113,0.1491731483216418
+discharge_code_remap,10,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6405475794244022,0.121,0.15009306327912977
+discharge_code_remap,11,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6393292283505829,0.102,0.1531032952899892
+discharge_code_remap,12,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5617020452807543,0.117,0.15213221037989047
+discharge_code_remap,13,0.04081632653061224,True,False,True,True,"discharge_disposition_id, medical_specialty",0.6569362816724573,0.103,0.1490382768844312
+discharge_code_remap,14,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6346755781411106,0.124,0.1517135448189229
+discharge_code_remap,15,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6353426676492262,0.115,0.15496552242959236
+discharge_code_remap,16,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5922223599996185,0.119,0.15208991917345724
+discharge_code_remap,17,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.569076472218922,0.114,0.1495723728444272
+discharge_code_remap,18,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.5744692077160103,0.106,0.15240134721787035
+discharge_code_remap,19,0.02040816326530612,True,False,True,True,discharge_disposition_id,0.6328876201923077,0.104,0.15732376962767194

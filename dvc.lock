@@ -53,16 +53,16 @@ stages:
       size: 1027
     - path: src/ml_pipeline/train.py
       hash: md5
-      md5: 24078986241a40708211cf551de468fd
-      size: 11954
+      md5: 5a9893ccd2e00056f13c74a4d53f183e
+      size: 12721
     params:
       params.yaml:
         random_seed: 42
     outs:
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 8fe62697b7278bfb512f0e1b822306fe
-      size: 1898
+      md5: 9e18c33a946831f0d29a64013c7a11b5
+      size: 2049
   train_xgboost:
     cmd: python -m ml_pipeline.train --model xgboost
     deps:
@@ -81,8 +81,8 @@ stages:
       size: 1027
     - path: src/ml_pipeline/train.py
       hash: md5
-      md5: 24078986241a40708211cf551de468fd
-      size: 11954
+      md5: 5a9893ccd2e00056f13c74a4d53f183e
+      size: 12721
     params:
       params.yaml:
         optuna_n_trials: 50
@@ -90,19 +90,19 @@ stages:
     outs:
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 17961a8124b360879b90aa14ac2c3c84
-      size: 2306
+      md5: c2a84e96d9588d016b7f5c6ada2b8acd
+      size: 2452
   gate:
     cmd: python -m ml_pipeline.promote
     deps:
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 8fe62697b7278bfb512f0e1b822306fe
-      size: 1898
+      md5: 9e18c33a946831f0d29a64013c7a11b5
+      size: 2049
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 17961a8124b360879b90aa14ac2c3c84
-      size: 2306
+      md5: c2a84e96d9588d016b7f5c6ada2b8acd
+      size: 2452
     - path: src/ml_pipeline/promote.py
       hash: md5
       md5: 10ebb82bfe6d54d7114f11d6dd482e4d

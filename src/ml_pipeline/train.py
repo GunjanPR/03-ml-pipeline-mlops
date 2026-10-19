@@ -160,6 +160,22 @@ def shap_artifacts(pipeline: Pipeline, x: pd.DataFrame, out_dir, seed: int, n: i
     return importance, [csv_path, png_path]
 
 
+KEY_FEATURES = 5
+
+
+def key_features(importance: pd.DataFrame, n: int = KEY_FEATURES) -> list[str]:
+    """Top raw features by summed mean |SHAP| over their one-hot columns."""
+    by_raw: dict[str, float] = {}
+    for name, value in zip(importance["feature"], importance["mean_abs_shap"], strict=True):
+        raw = next(
+            (f for f in sorted(FEATURES, key=len, reverse=True)
+             if name == f or name.startswith(f + "_")),
+            name,
+        )  # fmt: skip
+        by_raw[raw] = by_raw.get(raw, 0.0) + float(value)
+    return [f for f, _ in sorted(by_raw.items(), key=lambda kv: -kv[1])[:n]]
+
+
 def train(
     model: str = "baseline",
     settings: Settings | None = None,
@@ -220,6 +236,7 @@ def train(
         if shap:
             importance, paths = shap_artifacts(pipeline, x_test, out_dir, settings.random_seed)
             result["top_features"] = importance.head(10).to_dict("records")
+            result["key_features"] = key_features(importance)
             for path in paths:
                 mlflow.log_artifact(str(path), artifact_path="explainability")
         info = mlflow.sklearn.log_model(
@@ -243,6 +260,7 @@ def train(
         "threshold": threshold,
         "val_roc_auc": val["roc_auc"],
         "test_roc_auc": test["roc_auc"],
+        "key_features": ",".join(result.get("key_features", [])),
     }.items():
         client.set_model_version_tag(settings.registered_model_name, version, key, str(value))
     client.set_registered_model_alias(settings.registered_model_name, CHALLENGER, version)

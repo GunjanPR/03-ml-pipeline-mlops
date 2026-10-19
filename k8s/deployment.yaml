@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readmission-api
+  namespace: readmission
+  labels: {app: readmission-api}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: readmission-api}
+  template:
+    metadata:
+      labels: {app: readmission-api}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8020"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: api
+          image: readmission-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8020}
+          envFrom:
+            - configMapRef: {name: readmission-config}
+          env:
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: INFERENCE_LOG_PATH
+              value: /app/data/logs/$(POD_NAME).jsonl
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /app/data}
+            - {name: data, mountPath: /app/reports, subPath: reports}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: readmission-data}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readmission-api
+  namespace: readmission
+  labels: {app: readmission-api}
+spec:
+  selector: {app: readmission-api}
+  ports:
+    - {name: http, port: 80, targetPort: http}

@@ -59,3 +59,29 @@ def test_drift_gauges_read_latest_json(tmp_path):
     update_drift_gauges(path)
     assert DRIFT_SHARE._value.get() == 0.4
     assert DRIFT_DETECTED._value.get() == 1
+
+
+def test_inference_logs_from_several_pods_are_merged(tmp_path):
+    from ml_pipeline.monitor import read_inference_log
+
+    (tmp_path / "pod-a.jsonl").write_text('{"x": 1, "ts": "2026-01-02"}\n')
+    (tmp_path / "pod-b.jsonl").write_text(
+        '{"x": 2, "ts": "2026-01-01"}\n{"x": 3, "ts": "2026-01-03"}\n'
+    )
+    frame = read_inference_log(tmp_path)
+    assert frame["x"].tolist() == [2, 1, 3]
+    assert read_inference_log(tmp_path, last=1)["x"].tolist() == [3]
+
+
+def test_single_key_feature_shift_alarms_even_below_the_share_threshold(frames):
+    reference, same = frames
+    shifted = same.copy()
+    shifted["discharge_disposition_id"] = "22"  # one recoded column
+    no_keys = detect_drift(reference, shifted, threshold=0.3)
+    with_keys = detect_drift(
+        reference, shifted, threshold=0.3, key_features=["discharge_disposition_id", "age"]
+    )
+    assert not no_keys.share_rule and not no_keys.drifted
+    assert with_keys.drifted and not with_keys.share_rule
+    assert with_keys.drifted_key_features == ["discharge_disposition_id"]
+    assert any("key feature" in r for r in with_keys.reasons)

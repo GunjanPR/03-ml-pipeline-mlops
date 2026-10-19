@@ -99,12 +99,16 @@ class ModelState:
         import mlflow.sklearn
         from mlflow import MlflowClient
 
-        uri = settings.resolved_model_uri
+        bundle = settings.model_bundle
+        uri = str(bundle / "model") if bundle else settings.resolved_model_uri
         try:
             mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
             self.model = mlflow.sklearn.load_model(uri)
             self.version, self.threshold = "unknown", 0.5
-            if uri.startswith("models:/") and "@" in uri:
+            if bundle:
+                metadata = json.loads((bundle / "metadata.json").read_text())
+                self.version, self.threshold = metadata["version"], metadata["threshold"]
+            elif uri.startswith("models:/") and "@" in uri:
                 name, alias = uri.removeprefix("models:/").split("@")
                 mv = MlflowClient().get_model_version_by_alias(name, alias)
                 self.version = str(mv.version)
@@ -158,7 +162,7 @@ def create_app(settings: Settings | None = None, state: ModelState | None = None
     @app.get("/model")
     def model_info() -> dict:
         return {
-            "uri": settings.resolved_model_uri,
+            "uri": str(settings.model_bundle or settings.resolved_model_uri),
             "version": state.version,
             "threshold": state.threshold,
             "features": FEATURES,

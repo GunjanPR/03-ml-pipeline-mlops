@@ -36,6 +36,9 @@ class Settings(BaseSettings):
 
     # Model the API serves; empty = models:/<REGISTERED_MODEL_NAME>@champion
     model_uri: str = ""
+    # Exported bundle (python -m ml_pipeline.export); when set it wins over MODEL_URI and
+    # the API and drift monitor need no tracking server or training data.
+    model_bundle: Path | None = None
     # Each /predict call appends its inputs and outputs here (JSON lines), for drift monitoring
     inference_log_path: Path = Path("./logs/inference.jsonl")
     max_batch_size: int = 1000

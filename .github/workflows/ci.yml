@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  MLFLOW_DISABLE_AGENT_HINT: "1"
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: make lint
+      - run: make test
+
+  train-and-gate:
+    # Full DVC pipeline on the real dataset: download -> validate -> train baseline and
+    # XGBoost -> promotion gate. A shorter Optuna search keeps CI fast; the gate decision
+    # is published in the job summary and the champion is exported for the image build.
+    runs-on: ubuntu-latest
+    needs: lint-test
+    env:
+      OPTUNA_N_TRIALS: "10"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: uci-diabetes-130-v1
+      - name: dvc repro
+        run: dvc repro
+      - name: Quality floor and gate summary
+        run: |
+          python - <<'PY'
+          import json, os
+          base = json.load(open("reports/baseline_metrics.json"))["test"]
+          xgb = json.load(open("reports/xgboost_metrics.json"))["test"]
+          gate = json.load(open("reports/gate.json"))
+          lines = [
+              "| model | test ROC-AUC | PR-AUC | Brier |", "|---|---|---|---|",
+              f"| baseline | {base['roc_auc']:.4f} | {base['pr_auc']:.4f} | {base['brier']:.4f} |",
+              f"| xgboost | {xgb['roc_auc']:.4f} | {xgb['pr_auc']:.4f} | {xgb['brier']:.4f} |",
+              "",
+              f"**Gate:** {'PASSED' if gate['passed'] else 'BLOCKED'} - lift {gate['auc_lift']:+.4f} "
+              f"(95% CI {gate['auc_lift_ci_low']:+.4f} to {gate['auc_lift_ci_high']:+.4f})",
+          ]
+          open(os.environ["GITHUB_STEP_SUMMARY"], "a").write("\n".join(lines) + "\n")
+          # Regression floor: published baseline is 0.668 on this split.
+          assert base["roc_auc"] > 0.65 and xgb["roc_auc"] > 0.65, (base, xgb)
+          PY
+      - run: make bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-bundle
+          path: model_bundle/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: reports/
+
+  image-and-k8s:
+    # Build the serving image with the exported champion, smoke-test it with Docker, then
+    # deploy it to a throwaway kind cluster and call /predict through the Service.
+    runs-on: ubuntu-latest
+    needs: train-and-gate
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: model-bundle
+          path: model_bundle/
+      - run: docker build -t readmission-api:local .
+      - name: Container smoke test
+        run: |
+          docker run -d --name api -p 8020:8020 readmission-api:local
+          for i in $(seq 1 30); do curl -fs localhost:8020/ready && break; sleep 2; done
+          curl -fs -X POST localhost:8020/predict -H 'Content-Type: application/json' \
+            -d @examples/request.json | tee /dev/stderr | grep -q probability
+          curl -fs localhost:8020/metrics | grep -q mlp_predictions_total
+          docker rm -f api
+      - name: Validate manifests
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          kubectl kustomize k8s/ | ./kubeconform -strict -summary -
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: ci
+      - name: Deploy to kind and call the Service
+        run: |
+          kind load docker-image readmission-api:local --name ci
+          kubectl apply -k k8s/
+          kubectl -n readmission rollout status deploy/readmission-api --timeout=240s
+          kubectl -n readmission port-forward svc/readmission-api 8080:80 &
+          sleep 5
+          curl -fs -X POST localhost:8080/predict -H 'Content-Type: application/json' \
+            -d @examples/request.json | grep -q probability
+          kubectl -n readmission create job drift-check --from=cronjob/drift-monitor
+          kubectl -n readmission wait --for=condition=complete job/drift-check --timeout=300s
+          kubectl -n readmission logs job/drift-check | tail -5
+      - name: Cluster state on failure
+        if: failure()
+        run: |
+          kubectl -n readmission get all
+          kubectl -n readmission describe pods | tail -60
+          kubectl -n readmission logs deploy/readmission-api --tail=100

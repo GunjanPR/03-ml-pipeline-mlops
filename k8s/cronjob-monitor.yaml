@@ -1,0 +1,41 @@
+# Daily drift check over every pod's inference log; writes reports/drift/latest.json,
+# which the API exposes as mlp_drift_* gauges (alert: FeatureDriftDetected).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-monitor
+  namespace: readmission
+spec:
+  schedule: "0 6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            fsGroup: 10001
+          containers:
+            - name: monitor
+              image: readmission-api:local
+              imagePullPolicy: IfNotPresent
+              # exit code 3 = drift found; the Job still records it and the gauge alerts
+              command: ["sh", "-c", "python -m ml_pipeline.monitor; code=$?; [ $code -eq 3 ] && exit 0 || exit $code"]
+              envFrom:
+                - configMapRef: {name: readmission-config}
+              env:
+                - {name: INFERENCE_LOG_PATH, value: /app/data/logs}
+              resources:
+                requests: {cpu: 250m, memory: 512Mi}
+                limits: {cpu: "1", memory: 2Gi}
+              volumeMounts:
+                - {name: data, mountPath: /app/data}
+                - {name: data, mountPath: /app/reports, subPath: reports}
+          volumes:
+            - name: data
+              persistentVolumeClaim: {claimName: readmission-data}

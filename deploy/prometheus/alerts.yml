@@ -1,0 +1,48 @@
+# Alert thresholds for the readmission API (Prometheus Alerts page on :9092).
+groups:
+  - name: readmission-api
+    rules:
+      - alert: FeatureDriftDetected
+        # Set by `python -m ml_pipeline.monitor` (Evidently): share of drifted features at or
+        # above DRIFT_THRESHOLD (0.3). Action: run the drift-triggered retrain + gate.
+        expr: mlp_drift_detected == 1
+        labels: {severity: warning}
+        annotations:
+          summary: "Input drift: {{ $value }} - retrain the challenger and run the promotion gate"
+      - alert: DriftCheckStale
+        # No drift check for 26 hours means the daily monitor CronJob is not running.
+        expr: time() - mlp_drift_last_check_timestamp > 26 * 3600
+        labels: {severity: warning}
+        annotations:
+          summary: "No drift check in the last 26 hours"
+      - alert: FlagRateShift
+        # About 11% of encounters are readmitted within 30 days, and the F1 threshold flags
+        # roughly 25-30% of them. A flag rate outside 5-60% over an hour means the inputs or
+        # the model changed.
+        expr: |
+          (sum(rate(mlp_positive_predictions_total[1h])) / sum(rate(mlp_predictions_total[1h])) < 0.05)
+          or
+          (sum(rate(mlp_positive_predictions_total[1h])) / sum(rate(mlp_predictions_total[1h])) > 0.6)
+        for: 30m
+        labels: {severity: warning}
+        annotations:
+          summary: "Share of encounters flagged as high risk is outside 5-60%"
+      - alert: PredictLatencyHigh
+        # Measured p95 for single-record calls is a few ms (see README); 250 ms means the
+        # pod is CPU-starved or swapping.
+        expr: histogram_quantile(0.95, sum by (le) (rate(mlp_predict_latency_seconds_bucket[5m]))) > 0.25
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "/predict p95 latency above 250 ms"
+      - alert: PredictErrors
+        expr: sum(increase(mlp_predict_errors_total[5m])) > 5
+        labels: {severity: critical}
+        annotations:
+          summary: "More than 5 rejected /predict calls (model not ready or oversized batch) in 5 minutes"
+      - alert: ApiDown
+        expr: up{job=~"readmission-api.*"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "Readmission API target is down"

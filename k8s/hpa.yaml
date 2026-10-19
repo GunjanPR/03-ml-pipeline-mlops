@@ -1,0 +1,15 @@
+# Needs metrics-server (kind / Docker Desktop do not ship it; see k8s/README.md).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: readmission-api
+  namespace: readmission
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: readmission-api}
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 70}

@@ -55,5 +55,10 @@ models/
 # Reports: plots and per-model folders stay local; JSON metrics are committed for DVC
 reports/*
 !reports/*.json
+!reports/*.md
+!reports/*.csv
 !reports/history/
 kubeconfig*
+
+# Exported serving bundle (rebuilt by `make bundle`)
+model_bundle/

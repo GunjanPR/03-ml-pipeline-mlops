@@ -4,7 +4,7 @@ import pytest
 from mlflow import MlflowClient
 
 from conftest import fake_raw
-from ml_pipeline.data import clean, split
+from ml_pipeline.data import FEATURES, clean, split
 from ml_pipeline.promote import promote
 from ml_pipeline.train import CHALLENGER, CHAMPION, train
 
@@ -68,3 +68,54 @@ def test_ablation_run_is_logged_but_not_registered(prepared):
     versions = MlflowClient().search_model_versions(f"name='{prepared.registered_model_name}'")
     assert len(versions) == 1
     assert (prepared.reports_dir / "ablation" / "baseline-without-prior_encounters").exists()
+
+
+def test_exported_bundle_serves_without_the_registry(prepared, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from ml_pipeline.data import FEATURES, load_splits
+    from ml_pipeline.export import export
+    from ml_pipeline.serve import create_app
+
+    train("baseline", prepared, shap=False)
+    promote(prepared)
+    bundle = tmp_path / "bundle"
+    metadata = export(bundle, prepared)
+    assert metadata["version"] == "1" and metadata["model_kind"] == "baseline"
+    assert (bundle / "reference.parquet").exists()
+
+    serving = prepared.model_copy(
+        update={"model_bundle": bundle, "mlflow_tracking_uri": "sqlite:///nowhere.db"}
+    )
+    records = load_splits(prepared)["test"][FEATURES].head(2).to_dict("records")
+    with TestClient(create_app(serving)) as client:
+        assert client.get("/ready").json()["model_version"] == "1"
+        body = client.post("/predict", json={"records": records}).json()
+    assert body["threshold"] == metadata["threshold"]
+
+
+def test_key_features_aggregate_one_hot_columns():
+    import pandas as pd
+
+    from ml_pipeline.train import key_features
+
+    importance = pd.DataFrame(
+        {
+            "feature": [
+                "age_[70-80)",
+                "num_medications",
+                "age_[80-90)",
+                "insulin_Up",
+                "A1Cresult_>8",
+            ],
+            "mean_abs_shap": [0.2, 0.3, 0.2, 0.1, 0.05],
+        }
+    )
+    assert key_features(importance, n=3) == ["age", "num_medications", "insulin"]
+
+
+def test_registered_version_carries_key_features(prepared):
+    train("baseline", prepared)
+    version = MlflowClient().get_model_version_by_alias(prepared.registered_model_name, CHALLENGER)
+    keys = version.tags["key_features"].split(",")
+    assert len(keys) == 5 and all(k in FEATURES for k in keys)

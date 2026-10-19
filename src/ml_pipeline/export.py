@@ -54,6 +54,7 @@ def export(out: Path, settings: Settings | None = None, alias: str = CHAMPION) -
         "val_roc_auc": float(version.tags.get("val_roc_auc", "nan")),
         "test_roc_auc": float(version.tags.get("test_roc_auc", "nan")),
         "run_id": version.run_id,
+        "key_features": [f for f in version.tags.get("key_features", "").split(",") if f],
     }
     (out / METADATA).write_text(json.dumps(metadata, indent=2))
     log.info("exported %s v%s (%s) -> %s", name, version.version, metadata["model_kind"], out)

@@ -1,0 +1,13 @@
+# Inference logs (one file per pod) and drift reports, shared by the API pods and the
+# monitor CronJob. ReadWriteOnce is enough on a single-node cluster (kind / Docker Desktop);
+# a multi-node cluster needs a ReadWriteMany class or a log shipper instead.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: readmission-data
+  namespace: readmission
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
