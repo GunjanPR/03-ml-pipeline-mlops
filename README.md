@@ -167,7 +167,7 @@ python -m ml_pipeline.monitor --retrain   # drift-triggered job: retrain challen
 ### Lint and test
 ```bash
 make lint     # ruff check + ruff format --check
-make test     # pytest: 63 tests, no network or Docker needed
+make test     # pytest: 67 tests, no network or Docker needed
 make coverage # the same with line coverage (73%; fails below 70%)
 make audit    # calibration, top-k and subgroup report -> reports/audit.md
 make format   # auto-fix lint and formatting
@@ -236,11 +236,59 @@ Subgroups (logistic regression, deployed threshold 0.132):
 - **Age is the real gap.** Ranking gets steadily worse with age (AUC 0.745 → 0.619), so the
   score is least useful for the oldest patients, who are readmitted most. XGBoost narrows the
   gap a little (0.761 → 0.646, gap 0.116 vs 0.126). Sex and race gaps are small (AUC within
-  0.017 and 0.012) and their CIs overlap.
+  0.017 and 0.012) and their CIs overlap. The next section explains the age gap.
 - **Race-blind ablation** (`train --exclude race`, `reports/audit_race_ablation.md`): AUC
   0.6679 → 0.6677 and unchanged subgroup gaps. The model gets almost nothing from race, so it
   can be dropped at no cost. Asian, Hispanic, Other and missing-race groups have fewer than 30
   readmissions in the test set, so their AUC is not reported; their sensitivity CIs are wide.
+
+### Why AUC falls with age (`reports/age_gap.md`)
+
+`python -m ml_pipeline.age_gap` (a DVC stage) asks where the age gap comes from and whether
+anything closes it. Choices are made on train and val; test is used once, in step 3.
+
+**1. The signal is in prior hospital use, and it fades with age** (train split):
+
+| | <40 | 40-59 | 60-79 | 80+ |
+|---|---|---|---|---|
+| AUC of prior inpatient stays alone | 0.722 | 0.644 | 0.593 | 0.570 |
+| Readmitted, with a prior inpatient stay | 23.8% | 17.0% | 16.7% | 16.4% |
+| Readmitted, with no prior inpatient stay | 5.8% | 6.7% | 9.3% | 10.5% |
+| Acute or uncontrolled diabetes code (DKA, coma, "uncontrolled") | 39.1% | 12.4% | 6.0% | 4.8% |
+| Heart failure code | 2.8% | 10.6% | 19.5% | 25.5% |
+| Discharged home | 84.4% | 73.6% | 59.5% | 37.5% |
+
+Young patients who come back are mostly repeat users with diabetes crises, which past
+admissions predict well (champion test AUC 0.786 for that group). Patients over 80 come back
+almost as often with no history in the data (10.5% vs 16.4%), are rarely discharged home, and
+carry heart failure and other comorbidities. Their risk depends on things this dataset does
+not record, such as frailty, home support and post-discharge care.
+
+**2. No model closes it** (train → val ROC-AUC; gap = best band minus worst band):
+
+| Model | All | <40 | 80+ | Gap |
+|---|---|---|---|---|
+| Logistic regression (champion recipe) | 0.649 | 0.763 | 0.603 | 0.160 |
+| + 12 comorbidity flags from the full ICD-9 codes | 0.650 | 0.758 | 0.607 | 0.151 |
+| One logistic model per age band (+ flags) | 0.647 | 0.719 | 0.604 | 0.115 |
+| XGBoost (tuned parameters) | 0.676 | 0.766 | 0.637 | 0.129 |
+| XGBoost + comorbidity flags | 0.678 | 0.774 | 0.638 | 0.136 |
+
+Comorbidity flags add at most 0.004 for the oldest band. Per-band models only narrow the gap
+by making the youngest band worse. XGBoost lifts every band, including +0.033 for 80+, but
+the gap stays at 0.13. On test, XGBoost's 80+ AUC is 0.646 against 0.619 for the champion,
+and the gate still blocks it because the overall lift (+0.0087) is below the +0.01 bar.
+Lowering the bar after seeing this result would defeat the gate, so it stays.
+
+**3. Per-band thresholds do not significantly equalise sensitivity** (champion, test): fitting
+one threshold per age band on val, so every band reaches the same sensitivity, cuts the test
+sensitivity gap from 0.130 to 0.064 at the same alert volume (24.7% vs 25.0% flagged,
+precision 20.2% vs 19.8%). The paired bootstrap 95% CI for that reduction is -0.064 to +0.146,
+so it is not significant and the deployed policy keeps one threshold.
+
+**Conclusion:** the gap is a limit of the data, not a bug in the model. The useful next step
+is data, not modelling: frailty, functional status or discharge-support fields, which this
+public extract does not have.
 
 ### Reproducibility
 
@@ -391,12 +439,13 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 │   ├── train.py         # baseline + XGBoost/Optuna, SHAP, MLflow registration
 │   ├── promote.py       # champion/challenger gate (paired bootstrap)
 │   ├── audit.py         # calibration, top-k capture, subgroup metrics with CIs
+│   ├── age_gap.py       # why AUC falls with age: signal by band, models tried, thresholds
 │   ├── export.py        # champion -> serving bundle
 │   ├── serve.py         # FastAPI service, Prometheus metrics, async inference log
 │   ├── fastpath.py      # verified low-latency encoder for small requests
 │   ├── monitor.py       # Evidently drift check + alarm rules + retrain trigger
 │   └── simulate.py      # drift scenarios, end-to-end loop, retrain demo
-├── tests/               # 63 tests: data, validation, training, gate, API, fast path, drift, audit
+├── tests/               # 67 tests: data, validation, training, gate, API, fast path, drift, audit, age gap
 ├── dvc.yaml, dvc.lock, params.yaml
 ├── reports/             # committed metrics JSON, gate decision, drift simulation
 ├── deploy/              # Prometheus config + alert rules, Grafana dashboard

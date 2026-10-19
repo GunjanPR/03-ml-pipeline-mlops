@@ -147,3 +147,39 @@ stages:
       hash: md5
       md5: 043af903ea41ac2145a217326c00cfe7
       size: 3293
+  age_gap:
+    cmd: python -m ml_pipeline.age_gap
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
+      size: 1926202
+      nfiles: 3
+    - path: data/raw/diabetic_data.csv
+      hash: md5
+      md5: 502f0cc004e4cf71536ec2e61596e42f
+      size: 19159383
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 08500e40a446fb55b13477617b2c7c8d
+      size: 1965
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: 07d256095e8e36742b19de9b79dcdec8
+      size: 2360
+    - path: src/ml_pipeline/age_gap.py
+      hash: md5
+      md5: af549cdb7cefa47ae3f308f095b8d73e
+      size: 18925
+    params:
+      params.yaml:
+        random_seed: 42
+    outs:
+    - path: reports/age_gap.json
+      hash: md5
+      md5: 4a453d00825720264842d20d1bc1a010
+      size: 7064
+    - path: reports/age_gap.md
+      hash: md5
+      md5: 3f294b9fd620e0f90940ca8ca1b7e44b
+      size: 2675

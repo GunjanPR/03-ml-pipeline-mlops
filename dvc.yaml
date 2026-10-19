@@ -79,3 +79,22 @@ stages:
     outs:
       - reports/audit.md:
           cache: false
+
+  # Why AUC falls with age: signal by age band, models tried on val, and per-band
+  # thresholds measured on test. Writes reports/age_gap.md; see src/ml_pipeline/age_gap.py.
+  age_gap:
+    cmd: python -m ml_pipeline.age_gap
+    deps:
+      - data/raw/diabetic_data.csv
+      - data/processed
+      - reports/baseline_metrics.json
+      - reports/xgboost_metrics.json
+      - src/ml_pipeline/age_gap.py
+    params:
+      - random_seed
+    metrics:
+      - reports/age_gap.json:
+          cache: false
+    outs:
+      - reports/age_gap.md:
+          cache: false

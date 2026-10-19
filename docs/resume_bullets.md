@@ -26,6 +26,13 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    is by age (AUC 0.745 under 40 vs 0.619 over 80), not race; a race-blind ablation cost
    0.0002 AUC. *(reports/audit.md, reports/audit_race_ablation.md)*
 
+3b. Traced the age gap (AUC 0.745 under 40 vs 0.619 over 80) to the data, not the model:
+   prior inpatient stays predict readmission with AUC 0.72 under 40 but 0.57 over 80, and
+   over-80s are readmitted at 10.5% with no prior stay. Five model variants (comorbidity
+   flags from full ICD-9 codes, per-age-band models, tuned XGBoost) left the gap at
+   0.115-0.160, and per-band thresholds did not significantly equalise sensitivity
+   (paired-bootstrap CI -0.064 to +0.146), so neither was shipped. *(reports/age_gap.md)*
+
 4. Improved drift detection from 0 of 5 to 4 of 5 simulated data shifts, each caught within
    one 1,000-encounter batch (20/20 batches per shift), with 0/20 false alarms on unshifted
    data. The fix was to alarm on drift in the model's top SHAP features and in its output
@@ -36,7 +43,7 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    and the model was promoted only because the gate measured a significant lift
    (+0.061, CI +0.048 to +0.074). *(reports/drift_simulation.md)*
 
-6. Shipped CI/CD (GitHub Actions) that lints and runs 63 tests with a coverage floor, reproduces the DVC
+6. Shipped CI/CD (GitHub Actions) that lints and runs 67 tests with a coverage floor, reproduces the DVC
    pipeline on real data, gates the model, builds an immutable serving image with the
    champion baked in, and deploys it to a kind Kubernetes cluster to call `/predict` and
    run the drift CronJob on every push. *(.github/workflows/ci.yml)*
