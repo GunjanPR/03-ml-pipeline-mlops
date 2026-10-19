@@ -433,8 +433,10 @@ def run(settings: Settings | None = None) -> dict:
             val, test, p_val, p_test, threshold, settings.random_seed
         ),
     }
-    (settings.reports_dir / "age_gap.json").write_text(json.dumps(report, indent=2))
-    (settings.reports_dir / "age_gap.md").write_text(markdown(report))
+    # LF on every platform, so the DVC hashes in dvc.lock match a Linux checkout
+    out = settings.reports_dir
+    (out / "age_gap.json").write_text(json.dumps(report, indent=2) + "\n", newline="\n")
+    (out / "age_gap.md").write_text(markdown(report), newline="\n")
     return report
 
 
