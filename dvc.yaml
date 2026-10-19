@@ -1,0 +1,63 @@
+# Reproducible pipeline: `dvc repro` (or `make repro`) re-runs only the stages whose
+# code, data or params.yaml values changed. `dvc metrics show` / `dvc metrics diff` compare
+# the JSON metrics across commits.
+stages:
+  fetch:
+    cmd: python -m ml_pipeline.data fetch
+    outs:
+      - data/raw/diabetic_data.csv
+
+  prepare:
+    cmd: python -m ml_pipeline.data prepare
+    deps:
+      - data/raw/diabetic_data.csv
+      - src/ml_pipeline/data.py
+      - src/ml_pipeline/validation.py
+    params:
+      - random_seed
+    outs:
+      - data/processed
+    metrics:
+      - reports/data_profile.json:
+          cache: false
+
+  train_baseline:
+    cmd: python -m ml_pipeline.train --model baseline
+    deps:
+      - data/processed
+      - src/ml_pipeline/train.py
+      - src/ml_pipeline/features.py
+      - src/ml_pipeline/evaluate.py
+    params:
+      - random_seed
+    metrics:
+      - reports/baseline_metrics.json:
+          cache: false
+
+  train_xgboost:
+    cmd: python -m ml_pipeline.train --model xgboost
+    deps:
+      - data/processed
+      - src/ml_pipeline/train.py
+      - src/ml_pipeline/features.py
+      - src/ml_pipeline/evaluate.py
+    params:
+      - random_seed
+      - optuna_n_trials
+    metrics:
+      - reports/xgboost_metrics.json:
+          cache: false
+
+  # Quality gate. Records the decision in reports/gate.json and moves the `champion` alias
+  # only when the challenger is significantly better (CI uses --strict to fail instead).
+  gate:
+    cmd: python -m ml_pipeline.promote
+    deps:
+      - reports/baseline_metrics.json
+      - reports/xgboost_metrics.json
+      - src/ml_pipeline/promote.py
+    params:
+      - min_auc_lift
+    metrics:
+      - reports/gate.json:
+          cache: false

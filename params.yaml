@@ -1,0 +1,6 @@
+# Experiment parameters tracked by DVC (dvc.yaml `params:`). Read by ml_pipeline.config;
+# environment variables and .env override them.
+random_seed: 42
+optuna_n_trials: 50
+min_auc_lift: 0.01
+drift_threshold: 0.3

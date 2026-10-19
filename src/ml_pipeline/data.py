@@ -4,11 +4,14 @@ Task: predict whether an inpatient encounter is followed by a readmission within
 (`readmitted == "<30"`). Splits are grouped by `patient_nbr`, so no patient appears in more
 than one of train / val / test.
 
-    python -m ml_pipeline.data      # download (if missing), clean, split -> data/processed/
+    python -m ml_pipeline.data fetch     # download and unzip the raw CSV (if missing)
+    python -m ml_pipeline.data prepare   # validate, clean, split -> data/processed/
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import logging
 import urllib.request
 import zipfile
@@ -31,7 +34,7 @@ SPLITS = ("train", "val", "test")
 # (as in Strack et al., 2014).
 EXCLUDED_DISCHARGE_IDS = {11, 13, 14, 19, 20, 21}
 
-NUMERIC_FEATURES = [
+RAW_NUMERIC_FEATURES = [
     "time_in_hospital",
     "num_lab_procedures",
     "num_procedures",
@@ -41,6 +44,9 @@ NUMERIC_FEATURES = [
     "number_inpatient",
     "number_diagnoses",
 ]
+# Patient-history features derived from earlier encounters of the same patient (v2).
+HISTORY_FEATURES = ["prior_encounters", "prior_readmissions_30d", "total_prior_visits"]
+NUMERIC_FEATURES = RAW_NUMERIC_FEATURES + HISTORY_FEATURES
 MEDICATIONS = [
     "metformin", "repaglinide", "nateglinide", "chlorpropamide", "glimepiride",
     "acetohexamide", "glipizide", "glyburide", "tolbutamide", "pioglitazone",
@@ -120,9 +126,31 @@ def load_raw(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, na_values=["?"], keep_default_na=False, low_memory=False)
 
 
+def add_history_features(raw: pd.DataFrame) -> pd.DataFrame:
+    """Per-patient history from *earlier* encounters only (ordered by `encounter_id`, which the
+    dataset assigns in time order). All of it is known when the patient is admitted:
+
+    * `prior_encounters` - earlier encounters of this patient in the data;
+    * `prior_readmissions_30d` - how many of them were followed by a readmission within 30
+      days (that outcome is settled before, or by, the current admission);
+    * `total_prior_visits` - outpatient + emergency + inpatient visits in the preceding year.
+    """
+    df = raw.sort_values("encounter_id").copy()
+    by_patient = df.groupby(GROUP, sort=False)
+    df["prior_encounters"] = by_patient.cumcount()
+    readmitted = (df["readmitted"] == "<30").astype(int)
+    df["prior_readmissions_30d"] = readmitted.groupby(df[GROUP]).cumsum() - readmitted
+    df["total_prior_visits"] = (
+        df["number_outpatient"] + df["number_emergency"] + df["number_inpatient"]
+    )
+    return df.sort_index()
+
+
 def clean(raw: pd.DataFrame) -> pd.DataFrame:
-    """Filter, derive the target and features. Output columns: GROUP, FEATURES, TARGET."""
-    df = raw[~raw["discharge_disposition_id"].isin(EXCLUDED_DISCHARGE_IDS)].copy()
+    """Derive history features (on all encounters), filter, derive the target and the
+    remaining features. Output columns: GROUP, FEATURES, TARGET."""
+    df = add_history_features(raw)
+    df = df[~df["discharge_disposition_id"].isin(EXCLUDED_DISCHARGE_IDS)].copy()
     for i in (1, 2, 3):
         df[f"diag_{i}_group"] = df[f"diag_{i}"].fillna("missing").astype(str).map(icd9_group)
     for col in CATEGORICAL_FEATURES:
@@ -150,14 +178,45 @@ def split(
     }
 
 
+def profile(raw: pd.DataFrame, frames: dict[str, pd.DataFrame]) -> dict:
+    """Row counts, patients, positive rates and the raw missing-value rates."""
+    missing = raw.isna().mean()
+    return {
+        "raw_rows": len(raw),
+        "raw_patients": int(raw[GROUP].nunique()),
+        "excluded_rows": len(raw) - sum(len(f) for f in frames.values()),
+        "raw_missing_rate": {k: round(float(v), 4) for k, v in missing[missing > 0].items()},
+        "splits": {
+            name: {
+                "rows": len(f),
+                "patients": int(f[GROUP].nunique()),
+                "positive_rate": round(float(f[TARGET].mean()), 4),
+            }
+            for name, f in frames.items()
+        },
+    }
+
+
 def prepare(settings: Settings | None = None) -> dict[str, pd.DataFrame]:
-    """Fetch, clean and split; writes `data/processed/{split}.parquet`. Idempotent."""
+    """Fetch, validate, clean, split and validate again; writes `data/processed/{split}.parquet`
+    and `reports/data_profile.json`. Deterministic for a given seed, so re-running it rewrites
+    the same files instead of adding rows."""
+    from ml_pipeline.validation import PROCESSED_SCHEMA, RAW_SCHEMA, validate
+
     settings = settings or get_settings()
-    frames = split(clean(load_raw(fetch(settings))), seed=settings.random_seed)
+    raw = validate(load_raw(fetch(settings)), RAW_SCHEMA, "raw")
+    frames = {
+        name: validate(frame, PROCESSED_SCHEMA, f"processed/{name}")
+        for name, frame in split(clean(raw), seed=settings.random_seed).items()
+    }
     settings.processed_dir.mkdir(parents=True, exist_ok=True)
     for name, frame in frames.items():
         frame.to_parquet(settings.processed_dir / f"{name}.parquet", index=False)
         log.info("%s: %d rows, positive rate %.3f", name, len(frame), frame[TARGET].mean())
+    settings.reports_dir.mkdir(parents=True, exist_ok=True)
+    (settings.reports_dir / "data_profile.json").write_text(
+        json.dumps(profile(raw, frames), indent=2)
+    )
     return frames
 
 
@@ -174,6 +233,16 @@ def xy(frame: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
     return frame[FEATURES], frame[TARGET].to_numpy()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Fetch or prepare the readmission dataset")
+    parser.add_argument("step", choices=["fetch", "prepare"], nargs="?", default="prepare")
+    args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    prepare()
+    if args.step == "fetch":
+        log.info("raw data at %s", fetch())
+    else:
+        prepare()
+
+
+if __name__ == "__main__":
+    main()

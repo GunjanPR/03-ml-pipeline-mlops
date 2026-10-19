@@ -1,0 +1,82 @@
+{
+  "model": "xgboost",
+  "n_train": 69510,
+  "params": {
+    "max_depth": 8,
+    "learning_rate": 0.014871487738066612,
+    "min_child_weight": 6.62517221515823,
+    "subsample": 0.617806117777124,
+    "colsample_bytree": 0.8645437510473473,
+    "reg_lambda": 0.005723240440439775,
+    "reg_alpha": 0.0028157564424153153,
+    "gamma": 0.7867479001283629,
+    "n_estimators": 362,
+    "optuna_trials": 50
+  },
+  "val": {
+    "roc_auc": 0.6705011931594398,
+    "pr_auc": 0.23247421592687723,
+    "f1": 0.2843463780183181,
+    "brier": 0.09594759345054626,
+    "threshold": 0.14894267916679382,
+    "positive_rate": 0.11393672406888265,
+    "n": 14982
+  },
+  "test": {
+    "roc_auc": 0.6728446651194928,
+    "pr_auc": 0.23889204767070496,
+    "f1": 0.28065054211843204,
+    "brier": 0.0934218019247055,
+    "threshold": 0.14894267916679382,
+    "positive_rate": 0.11110362938522658,
+    "n": 14851,
+    "roc_auc_ci_low": 0.6598311582921861,
+    "roc_auc_ci_high": 0.6869974866394933
+  },
+  "fit_seconds": 1343.2144546000054,
+  "predict_ms_per_1k_rows": 13.478149622116865,
+  "top_features": [
+    {
+      "feature": "discharge_disposition_id_28",
+      "mean_abs_shap": 0.8955179452896118
+    },
+    {
+      "feature": "number_inpatient",
+      "mean_abs_shap": 0.30963683128356934
+    },
+    {
+      "feature": "discharge_disposition_id_infrequent_sklearn",
+      "mean_abs_shap": 0.3083690106868744
+    },
+    {
+      "feature": "discharge_disposition_id_1",
+      "mean_abs_shap": 0.22008340060710907
+    },
+    {
+      "feature": "discharge_disposition_id_22",
+      "mean_abs_shap": 0.1962052285671234
+    },
+    {
+      "feature": "diag_2_group_neoplasms",
+      "mean_abs_shap": 0.17526592314243317
+    },
+    {
+      "feature": "medical_specialty_Hematology/Oncology",
+      "mean_abs_shap": 0.13025720417499542
+    },
+    {
+      "feature": "discharge_disposition_id_5",
+      "mean_abs_shap": 0.12861968576908112
+    },
+    {
+      "feature": "discharge_disposition_id_23",
+      "mean_abs_shap": 0.10750328749418259
+    },
+    {
+      "feature": "discharge_disposition_id_2",
+      "mean_abs_shap": 0.10638044029474258
+    }
+  ],
+  "mlflow_run_id": "1343e04135094c50a1aaf183f7903dd4",
+  "registered_version": 2
+}

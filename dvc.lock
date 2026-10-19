@@ -1,0 +1,117 @@
+schema: '2.0'
+stages:
+  fetch:
+    cmd: python -m ml_pipeline.data fetch
+    outs:
+    - path: data/raw/diabetic_data.csv
+      hash: md5
+      md5: 502f0cc004e4cf71536ec2e61596e42f
+      size: 19159383
+  prepare:
+    cmd: python -m ml_pipeline.data prepare
+    deps:
+    - path: data/raw/diabetic_data.csv
+      hash: md5
+      md5: 502f0cc004e4cf71536ec2e61596e42f
+      size: 19159383
+    - path: src/ml_pipeline/data.py
+      hash: md5
+      md5: 7c0fb960e5b06c82ae3dd07b18dfc322
+      size: 9665
+    - path: src/ml_pipeline/validation.py
+      hash: md5
+      md5: b5466cfeb969a615412dbae5d95deec4
+      size: 3182
+    params:
+      params.yaml:
+        random_seed: 42
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
+      size: 1926202
+      nfiles: 3
+    - path: reports/data_profile.json
+      hash: md5
+      md5: ce6bef016fb27494a4a83c33db7cf0eb
+      size: 607
+  train_baseline:
+    cmd: python -m ml_pipeline.train --model baseline
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
+      size: 1926202
+      nfiles: 3
+    - path: src/ml_pipeline/evaluate.py
+      hash: md5
+      md5: fa0b9937bc1733d1d6c6cdf902252401
+      size: 1780
+    - path: src/ml_pipeline/features.py
+      hash: md5
+      md5: 47b20063604dc2d83ab3ffcf5f49be2c
+      size: 1027
+    - path: src/ml_pipeline/train.py
+      hash: md5
+      md5: 24078986241a40708211cf551de468fd
+      size: 11954
+    params:
+      params.yaml:
+        random_seed: 42
+    outs:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 8fe62697b7278bfb512f0e1b822306fe
+      size: 1898
+  train_xgboost:
+    cmd: python -m ml_pipeline.train --model xgboost
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
+      size: 1926202
+      nfiles: 3
+    - path: src/ml_pipeline/evaluate.py
+      hash: md5
+      md5: fa0b9937bc1733d1d6c6cdf902252401
+      size: 1780
+    - path: src/ml_pipeline/features.py
+      hash: md5
+      md5: 47b20063604dc2d83ab3ffcf5f49be2c
+      size: 1027
+    - path: src/ml_pipeline/train.py
+      hash: md5
+      md5: 24078986241a40708211cf551de468fd
+      size: 11954
+    params:
+      params.yaml:
+        optuna_n_trials: 50
+        random_seed: 42
+    outs:
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: 17961a8124b360879b90aa14ac2c3c84
+      size: 2306
+  gate:
+    cmd: python -m ml_pipeline.promote
+    deps:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 8fe62697b7278bfb512f0e1b822306fe
+      size: 1898
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: 17961a8124b360879b90aa14ac2c3c84
+      size: 2306
+    - path: src/ml_pipeline/promote.py
+      hash: md5
+      md5: 10ebb82bfe6d54d7114f11d6dd482e4d
+      size: 7313
+    params:
+      params.yaml:
+        min_auc_lift: 0.01
+    outs:
+    - path: reports/gate.json
+      hash: md5
+      md5: 1bd91234bc30e73a2c636b81df05a915
+      size: 545

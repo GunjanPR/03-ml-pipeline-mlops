@@ -1,0 +1,31 @@
+{
+  "raw_rows": 101766,
+  "raw_patients": 71518,
+  "excluded_rows": 2423,
+  "raw_missing_rate": {
+    "race": 0.0223,
+    "weight": 0.9686,
+    "payer_code": 0.3956,
+    "medical_specialty": 0.4908,
+    "diag_1": 0.0002,
+    "diag_2": 0.0035,
+    "diag_3": 0.014
+  },
+  "splits": {
+    "train": {
+      "rows": 69510,
+      "patients": 48992,
+      "positive_rate": 0.1145
+    },
+    "val": {
+      "rows": 14982,
+      "patients": 10499,
+      "positive_rate": 0.1139
+    },
+    "test": {
+      "rows": 14851,
+      "patients": 10499,
+      "positive_rate": 0.1111
+    }
+  }
+}

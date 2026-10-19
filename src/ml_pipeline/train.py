@@ -27,7 +27,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from ml_pipeline.config import Settings, get_settings
-from ml_pipeline.data import load_splits, xy
+from ml_pipeline.data import FEATURES, load_splits, xy
 from ml_pipeline.evaluate import best_f1_threshold, bootstrap_auc_ci, classification_metrics
 from ml_pipeline.features import build_preprocessor
 
@@ -46,15 +46,19 @@ class Fitted:
     params: dict = field(default_factory=dict)
 
 
-def fit_baseline(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
+def fit_baseline(
+    splits: dict[str, pd.DataFrame], settings: Settings, exclude: frozenset[str] = frozenset()
+) -> Fitted:
     x_train, y_train = xy(splits["train"])
     model = LogisticRegression(max_iter=2000, random_state=settings.random_seed)
-    pipeline = Pipeline([("prep", build_preprocessor()), ("model", model)])
+    pipeline = Pipeline([("prep", build_preprocessor(exclude)), ("model", model)])
     pipeline.fit(x_train, y_train)
     return Fitted(pipeline, {"C": model.C})
 
 
-def fit_xgboost(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
+def fit_xgboost(
+    splits: dict[str, pd.DataFrame], settings: Settings, exclude: frozenset[str] = frozenset()
+) -> Fitted:
     """Optuna (TPE) search maximising val ROC-AUC, with early stopping on val."""
     import optuna
     from sklearn.metrics import roc_auc_score
@@ -62,7 +66,7 @@ def fit_xgboost(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
 
     x_train, y_train = xy(splits["train"])
     x_val, y_val = xy(splits["val"])
-    prep = build_preprocessor().fit(x_train)
+    prep = build_preprocessor(exclude).fit(x_train)
     xt, xv = prep.transform(x_train), prep.transform(x_val)
 
     def make(params: dict, n_estimators: int, early_stopping: int | None) -> XGBClassifier:
@@ -79,7 +83,7 @@ def fit_xgboost(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
     def objective(trial: optuna.Trial) -> float:
         params = {
             "max_depth": trial.suggest_int("max_depth", 2, 8),
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
+            "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.3, log=True),
             "min_child_weight": trial.suggest_float("min_child_weight", 1, 50, log=True),
             "subsample": trial.suggest_float("subsample", 0.5, 1.0),
             "colsample_bytree": trial.suggest_float("colsample_bytree", 0.3, 1.0),
@@ -87,7 +91,7 @@ def fit_xgboost(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-3, 10, log=True),
             "gamma": trial.suggest_float("gamma", 0, 5),
         }
-        model = make(params, 3000, early_stopping=100)
+        model = make(params, 2000, early_stopping=50)
         model.fit(xt, y_train, eval_set=[(xv, y_val)], verbose=False)
         trial.set_user_attr("n_estimators", int(model.best_iteration) + 1)
         return float(roc_auc_score(y_val, model.predict_proba(xv)[:, 1]))
@@ -96,13 +100,18 @@ def fit_xgboost(splits: dict[str, pd.DataFrame], settings: Settings) -> Fitted:
     study = optuna.create_study(
         direction="maximize", sampler=optuna.samplers.TPESampler(seed=settings.random_seed)
     )
-    study.optimize(objective, n_trials=settings.optuna_n_trials)
+
+    def progress(study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
+        if (trial.number + 1) % 10 == 0:
+            log.info("optuna trial %d: best val ROC-AUC %.4f", trial.number + 1, study.best_value)
+
+    study.optimize(objective, n_trials=settings.optuna_n_trials, callbacks=[progress])
     best = study.best_trial
     n_estimators = best.user_attrs["n_estimators"]
     log.info("optuna best val ROC-AUC %.4f after %d trials", best.value, len(study.trials))
 
     pipeline = Pipeline(
-        [("prep", build_preprocessor()), ("model", make(best.params, n_estimators, None))]
+        [("prep", build_preprocessor(exclude)), ("model", make(best.params, n_estimators, None))]
     )
     pipeline.fit(x_train, y_train)
     return Fitted(
@@ -151,14 +160,22 @@ def shap_artifacts(pipeline: Pipeline, x: pd.DataFrame, out_dir, seed: int, n: i
     return importance, [csv_path, png_path]
 
 
-def train(model: str = "baseline", settings: Settings | None = None, shap: bool = True) -> dict:
+def train(
+    model: str = "baseline",
+    settings: Settings | None = None,
+    shap: bool = True,
+    exclude: frozenset[str] = frozenset(),
+    register: bool = True,
+) -> dict:
+    """Train, evaluate and log one model. `exclude` drops features (ablations); ablation runs
+    pass `register=False` so they never reach the registry or the default report files."""
     settings = settings or get_settings()
     splits = load_splits(settings)
     x_val, y_val = xy(splits["val"])
     x_test, y_test = xy(splits["test"])
 
     start = time.perf_counter()
-    fitted = TRAINERS[model](splits, settings)
+    fitted = TRAINERS[model](splits, settings, exclude)
     fit_seconds = time.perf_counter() - start
     pipeline = fitted.pipeline
 
@@ -177,20 +194,23 @@ def train(model: str = "baseline", settings: Settings | None = None, shap: bool 
         "model": model,
         "n_train": len(splits["train"]),
         "params": fitted.params,
+        "excluded_features": sorted(exclude),
         "val": val,
         "test": test,
         "fit_seconds": fit_seconds,
         "predict_ms_per_1k_rows": 1000 * predict_seconds / len(y_test) * 1000,
     }
 
-    out_dir = settings.reports_dir / model
+    run_name = model if not exclude else f"{model}-without-{'-'.join(sorted(exclude))}"
+    out_dir = settings.reports_dir / (model if register else f"ablation/{run_name}")
     out_dir.mkdir(parents=True, exist_ok=True)
     np.save(out_dir / "test_proba.npy", p_test)  # used for paired comparisons in promote.py
 
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment(settings.mlflow_experiment_name)
-    with mlflow.start_run(run_name=model) as run:
+    with mlflow.start_run(run_name=run_name) as run:
         mlflow.set_tag("model_kind", model)
+        mlflow.set_tag("excluded_features", ",".join(sorted(exclude)))
         mlflow.log_params({"model": model, "seed": settings.random_seed, **fitted.params})
         mlflow.log_metrics({f"val_{k}": v for k, v in val.items()})
         mlflow.log_metrics({f"test_{k}": v for k, v in test.items()})
@@ -206,10 +226,15 @@ def train(model: str = "baseline", settings: Settings | None = None, shap: bool 
             pipeline,
             name="model",
             input_example=x_val.head(5),
-            registered_model_name=settings.registered_model_name,
+            registered_model_name=settings.registered_model_name if register else None,
             skops_trusted_types=TRUSTED_TYPES,
         )
         result["mlflow_run_id"] = run.info.run_id
+
+    if not register:
+        (out_dir / "metrics.json").write_text(json.dumps(result, indent=2))
+        log.info("%s test ROC-AUC %.4f (not registered)", run_name, test["roc_auc"])
+        return result
 
     client = MlflowClient()
     version = info.registered_model_version
@@ -246,12 +271,19 @@ def main() -> None:
     parser.add_argument("--model", choices=sorted(TRAINERS), default="baseline")
     parser.add_argument("--no-shap", action="store_true", help="skip SHAP artifacts")
     parser.add_argument("--trials", type=int, help="override OPTUNA_N_TRIALS")
+    parser.add_argument(
+        "--exclude", default="", help="comma-separated features to drop (ablation; not registered)"
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     settings = get_settings()
     if args.trials:
         settings = settings.model_copy(update={"optuna_n_trials": args.trials})
-    train(args.model, settings, shap=not args.no_shap)
+    exclude = frozenset(filter(None, args.exclude.split(",")))
+    unknown = exclude - set(FEATURES)
+    if unknown:
+        parser.error(f"unknown features: {sorted(unknown)}")
+    train(args.model, settings, shap=not args.no_shap, exclude=exclude, register=not exclude)
 
 
 if __name__ == "__main__":

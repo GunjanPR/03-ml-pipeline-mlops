@@ -15,6 +15,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -42,6 +43,9 @@ SCORE = Histogram(
 )
 ERRORS = Counter("mlp_predict_errors_total", "Failed /predict calls", ["kind"])
 MODEL_VERSION = Gauge("mlp_model_version", "Registry version currently served")
+DRIFT_SHARE = Gauge("mlp_drift_share", "Share of drifted features in the last check")
+DRIFT_DETECTED = Gauge("mlp_drift_detected", "1 if the last drift check crossed the threshold")
+DRIFT_CHECKED = Gauge("mlp_drift_last_check_timestamp", "Unix time of the last drift check")
 
 
 def _field_name(feature: str) -> str:
@@ -69,6 +73,17 @@ class PredictResponse(BaseModel):
     model_version: str
     threshold: float
     predictions: list[Prediction]
+
+
+def update_drift_gauges(path: Path) -> None:
+    """Expose the latest `ml_pipeline.monitor` result (if any) as gauges."""
+    try:
+        latest = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return
+    DRIFT_SHARE.set(latest["drift_share"])
+    DRIFT_DETECTED.set(int(latest["drifted"]))
+    DRIFT_CHECKED.set(datetime.fromisoformat(latest["checked_at"]).timestamp())
 
 
 class ModelState:
@@ -188,6 +203,7 @@ def create_app(settings: Settings | None = None, state: ModelState | None = None
 
     @app.get("/metrics")
     def metrics() -> Response:
+        update_drift_gauges(settings.reports_dir / "drift" / "latest.json")
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     return app

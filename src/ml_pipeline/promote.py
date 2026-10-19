@@ -1,6 +1,7 @@
 """Quality gate: promote the `challenger` model version to `champion` only if it is better.
 
-    python -m ml_pipeline.promote            # exit 0 = promoted (or nothing to do), 1 = blocked
+    python -m ml_pipeline.promote            # decide, move aliases, write reports/gate.json
+    python -m ml_pipeline.promote --strict   # same, but exit 1 when blocked (CI)
 
 The challenger is compared with the current champion, or with the latest baseline version
 when there is no champion yet (a lone baseline becomes the first champion). Both are scored
@@ -147,8 +148,12 @@ def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResu
     client.set_model_version_tag(
         name, challenger.version, "gate", "passed" if passed else "blocked"
     )
-    if passed and not dry_run:
-        client.set_registered_model_alias(name, CHAMPION, challenger.version)
+    if not dry_run:
+        if passed:
+            client.set_registered_model_alias(name, CHAMPION, challenger.version)
+        elif CHAMPION not in reference.aliases:
+            # Blocked with no champion yet: serve the baseline rather than nothing.
+            client.set_registered_model_alias(name, CHAMPION, reference.version)
     settings.reports_dir.mkdir(parents=True, exist_ok=True)
     (settings.reports_dir / "gate.json").write_text(json.dumps(asdict(result), indent=2))
     log.info(
@@ -170,10 +175,14 @@ def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResu
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true", help="evaluate without moving aliases")
+    parser.add_argument(
+        "--strict", action="store_true", help="exit 1 when the challenger is blocked (CI gates)"
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     result = promote(dry_run=args.dry_run)
-    sys.exit(0 if result is None or result.passed else 1)
+    blocked = result is not None and not result.passed
+    sys.exit(1 if blocked and args.strict else 0)
 
 
 if __name__ == "__main__":

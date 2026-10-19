@@ -48,3 +48,23 @@ def test_first_baseline_becomes_champion_then_xgboost_goes_through_the_gate(prep
     champion = str(client.get_model_version_by_alias(name, CHAMPION).version)
     assert champion == ("2" if gate.passed else "1")
     assert json.loads((prepared.reports_dir / "gate.json").read_text())["passed"] == gate.passed
+
+
+def test_gate_always_leaves_a_champion_on_first_comparison(prepared):
+    # The DVC order: both models trained before the first gate run.
+    train("baseline", prepared, shap=False)
+    train("xgboost", prepared, shap=False)
+    gate = promote(prepared)
+    champion = MlflowClient().get_model_version_by_alias(prepared.registered_model_name, CHAMPION)
+    assert str(champion.version) == ("2" if gate.passed else "1")
+
+
+def test_ablation_run_is_logged_but_not_registered(prepared):
+    train("baseline", prepared, shap=False)
+    result = train(
+        "baseline", prepared, shap=False, exclude=frozenset({"prior_encounters"}), register=False
+    )
+    assert result["excluded_features"] == ["prior_encounters"]
+    versions = MlflowClient().search_model_versions(f"name='{prepared.registered_model_name}'")
+    assert len(versions) == 1
+    assert (prepared.reports_dir / "ablation" / "baseline-without-prior_encounters").exists()

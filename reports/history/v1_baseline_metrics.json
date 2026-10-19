@@ -1,0 +1,73 @@
+{
+  "model": "baseline",
+  "n_train": 69510,
+  "params": {
+    "C": 1.0
+  },
+  "val": {
+    "roc_auc": 0.6482903122955549,
+    "pr_auc": 0.2131450467320855,
+    "f1": 0.26774618715872717,
+    "brier": 0.09713969633258035,
+    "threshold": 0.13269256754679107,
+    "positive_rate": 0.11393672406888265,
+    "n": 14982
+  },
+  "test": {
+    "roc_auc": 0.6679130368911446,
+    "pr_auc": 0.22269185124153007,
+    "f1": 0.27562898986105894,
+    "brier": 0.09433893758034427,
+    "threshold": 0.13269256754679107,
+    "positive_rate": 0.11110362938522658,
+    "n": 14851,
+    "roc_auc_ci_low": 0.6533972164560786,
+    "roc_auc_ci_high": 0.6814827744135016
+  },
+  "fit_seconds": 7.767469800019171,
+  "predict_ms_per_1k_rows": 18.524368730115373,
+  "top_features": [
+    {
+      "feature": "discharge_disposition_id_1",
+      "mean_abs_shap": 0.23777186245904708
+    },
+    {
+      "feature": "number_inpatient",
+      "mean_abs_shap": 0.22109230078324008
+    },
+    {
+      "feature": "payer_code_missing",
+      "mean_abs_shap": 0.11831963232723433
+    },
+    {
+      "feature": "medical_specialty_missing",
+      "mean_abs_shap": 0.08183012110639709
+    },
+    {
+      "feature": "number_diagnoses",
+      "mean_abs_shap": 0.06578836096096739
+    },
+    {
+      "feature": "discharge_disposition_id_6",
+      "mean_abs_shap": 0.06460897849941638
+    },
+    {
+      "feature": "diabetesMed_No",
+      "mean_abs_shap": 0.05432683068995238
+    },
+    {
+      "feature": "insulin_No",
+      "mean_abs_shap": 0.0540245633361922
+    },
+    {
+      "feature": "num_medications",
+      "mean_abs_shap": 0.05297614113636186
+    },
+    {
+      "feature": "change_Ch",
+      "mean_abs_shap": 0.04642665714389567
+    }
+  ],
+  "mlflow_run_id": "75c054f4ffd741b08ee5ad511e08f674",
+  "registered_version": 1
+}

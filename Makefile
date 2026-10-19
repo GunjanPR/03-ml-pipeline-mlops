@@ -1,7 +1,7 @@
 # Windows: install make with `choco install make`, or run from Git Bash.
 PYTHON ?= python
 
-.PHONY: install lint format test data run serve mlflow-ui
+.PHONY: install lint format test data run train-xgboost gate repro serve mlflow-ui
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -19,10 +19,19 @@ test:
 	$(PYTHON) -m pytest
 
 data:
-	$(PYTHON) -m ml_pipeline.data
+	$(PYTHON) -m ml_pipeline.data prepare
 
 run:
 	$(PYTHON) -m ml_pipeline.train
+
+train-xgboost:
+	$(PYTHON) -m ml_pipeline.train --model xgboost
+
+gate:
+	$(PYTHON) -m ml_pipeline.promote
+
+repro:                      # full DVC pipeline: fetch -> prepare -> train x2 -> gate
+	$(PYTHON) -m dvc repro
 
 serve:
 	$(PYTHON) -m uvicorn ml_pipeline.serve:app --reload --host 0.0.0.0 --port 8020

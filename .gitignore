@@ -52,5 +52,8 @@ mlartifacts/
 models/
 *.pkl
 *.joblib
-reports/
+# Reports: plots and per-model folders stay local; JSON metrics are committed for DVC
+reports/*
+!reports/*.json
+!reports/history/
 kubeconfig*
