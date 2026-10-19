@@ -1,0 +1,25 @@
+{
+  "label": "docker container, fast path",
+  "url": "http://127.0.0.1:8020",
+  "machine": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel / Windows",
+  "single": {
+    "calls": 1000,
+    "rows_per_call": 1,
+    "p50_ms": 47.52645001281053,
+    "p95_ms": 49.22810998687055,
+    "p99_ms": 51.147468980634585,
+    "mean_ms": 47.231614999705926,
+    "rows_per_second": 21.172259301449383,
+    "server_mean_ms": 0.698274831010167
+  },
+  "batched": {
+    "calls": 50,
+    "rows_per_call": 100,
+    "p50_ms": 25.236049987142906,
+    "p95_ms": 73.34325999254361,
+    "p99_ms": 76.51868198590819,
+    "mean_ms": 36.51701799943112,
+    "rows_per_second": 2738.4492348624376,
+    "server_mean_ms": 18.07957669994721
+  }
+}

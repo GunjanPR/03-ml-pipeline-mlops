@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import queue
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from ml_pipeline.config import Settings, get_settings
 from ml_pipeline.data import CATEGORICAL_FEATURES, FEATURES, NUMERIC_FEATURES
+from ml_pipeline.fastpath import build_fast_scorer
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +44,11 @@ SCORE = Histogram(
     buckets=tuple(i / 20 for i in range(1, 21)),
 )
 ERRORS = Counter("mlp_predict_errors_total", "Failed /predict calls", ["kind"])
+PATH = Counter("mlp_predict_path_total", "/predict calls by scoring path", ["path"])
+
+# Requests up to this many rows use the verified fast encoder (see ml_pipeline.fastpath);
+# larger batches go through the sklearn pipeline, which is faster per row at volume.
+FAST_PATH_MAX_ROWS = 32
 MODEL_VERSION = Gauge("mlp_model_version", "Registry version currently served")
 DRIFT_SHARE = Gauge("mlp_drift_share", "Share of drifted features in the last check")
 DRIFT_DETECTED = Gauge("mlp_drift_detected", "1 if the last drift check crossed the threshold")
@@ -92,6 +99,7 @@ class ModelState:
         self.version = "unloaded"
         self.threshold = 0.5
         self.error: str | None = None
+        self.scorer = None
         self.lock = threading.Lock()
 
     def load(self, settings: Settings) -> None:
@@ -114,6 +122,7 @@ class ModelState:
                 self.version = str(mv.version)
                 self.threshold = float(mv.tags.get("threshold", 0.5))
             MODEL_VERSION.set(float(self.version) if self.version.isdigit() else -1)
+            self.scorer = build_fast_scorer(self.model, _reference_sample(settings))
             self.error = None
             log.info("serving %s (version %s, threshold %.4f)", uri, self.version, self.threshold)
         except Exception as exc:  # noqa: BLE001 - keep the process up; /ready reports it
@@ -121,18 +130,56 @@ class ModelState:
             log.error("could not load %s: %s", uri, self.error)
 
 
+def _reference_sample(settings: Settings) -> pd.DataFrame | None:
+    """Rows to verify the fast path against: the bundle's reference sample, else training
+    data when it is available locally."""
+    try:
+        if settings.model_bundle:
+            return pd.read_parquet(settings.model_bundle / "reference.parquet")
+        from ml_pipeline.monitor import reference_frame
+
+        return reference_frame(settings)
+    except Exception:  # noqa: BLE001 - no reference means no fast path, not a failure
+        return None
+
+
 class InferenceLog:
+    """Appends each scored record as a JSON line. Writes happen on a background thread, so
+    disk I/O never adds to request latency; `close()` flushes what is queued."""
+
     def __init__(self, path) -> None:
         self.path = path
-        self.lock = threading.Lock()
+        self.queue: queue.Queue = queue.Queue()
+        self.thread = threading.Thread(target=self._run, daemon=True, name="inference-log")
+        self.thread.start()
 
-    def write(self, frame: pd.DataFrame, proba, version: str) -> None:
-        now = datetime.now(UTC).isoformat()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        records = frame.assign(prediction=proba, model_version=version, ts=now)
-        with self.lock, self.path.open("a", encoding="utf-8") as fh:
-            for row in records.to_dict("records"):
-                fh.write(json.dumps(row) + "\n")
+    def write(self, records: list[dict], proba, version: str) -> None:
+        self.queue.put((records, [float(p) for p in proba], version, datetime.now(UTC)))
+
+    def _run(self) -> None:
+        while True:
+            item = self.queue.get()
+            try:
+                if item is None:
+                    return
+                records, proba, version, ts = item
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                with self.path.open("a", encoding="utf-8") as fh:
+                    for record, p in zip(records, proba, strict=True):
+                        row = {**record, "prediction": p, "model_version": version,
+                               "ts": ts.isoformat()}  # fmt: skip
+                        fh.write(json.dumps(row) + "\n")
+            except Exception:  # noqa: BLE001 - logging must never take the API down
+                log.exception("inference log write failed")
+            finally:
+                self.queue.task_done()
+
+    def flush(self) -> None:
+        self.queue.join()
+
+    def close(self) -> None:
+        self.queue.put(None)
+        self.thread.join(timeout=5)
 
 
 def create_app(settings: Settings | None = None, state: ModelState | None = None) -> FastAPI:
@@ -145,9 +192,11 @@ def create_app(settings: Settings | None = None, state: ModelState | None = None
         if state.model is None:
             state.load(settings)
         yield
+        inference_log.close()
 
     app = FastAPI(title="Readmission risk API", version="0.1.0", lifespan=lifespan)
     app.state.model_state = state
+    app.state.inference_log = inference_log
 
     @app.get("/health")
     def health() -> dict:
@@ -185,10 +234,16 @@ def create_app(settings: Settings | None = None, state: ModelState | None = None
             ERRORS.labels("batch_too_large").inc()
             raise HTTPException(413, detail=f"at most {settings.max_batch_size} records per call")
         start = time.perf_counter()
-        frame = pd.DataFrame([r.model_dump(by_alias=True) for r in request.records])[FEATURES]
-        model, version, threshold = state.model, state.version, state.threshold
-        proba = model.predict_proba(frame)[:, 1]
-        inference_log.write(frame, proba, version)
+        records = [r.model_dump(by_alias=True) for r in request.records]
+        model, scorer = state.model, state.scorer
+        version, threshold = state.version, state.threshold
+        if scorer is not None and len(records) <= FAST_PATH_MAX_ROWS:
+            proba = scorer.predict_proba(records)
+            PATH.labels("fast").inc()
+        else:
+            proba = model.predict_proba(pd.DataFrame(records)[FEATURES])[:, 1]
+            PATH.labels("sklearn").inc()
+        inference_log.write(records, proba, version)
         flags = proba >= threshold
         PREDICTIONS.labels(version).inc(len(proba))
         POSITIVES.labels(version).inc(int(flags.sum()))

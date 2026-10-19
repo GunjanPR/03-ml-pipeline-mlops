@@ -239,7 +239,7 @@
       "type": "prometheus",
       "uid": "prometheus"
      },
-     "expr": "sum(increase(mlp_predict_errors_total[5m]))",
+     "expr": "sum(increase(mlp_predict_errors_total[5m])) or vector(0)",
      "legendFormat": "",
      "refId": "A"
     }
@@ -351,7 +351,7 @@
    "id": 9,
    "type": "heatmap",
    "title": "Predicted probability distribution",
-   "description": "",
+   "description": "Each column is one minute; rows are predicted-probability buckets (upper bound).",
    "datasource": {
     "type": "prometheus",
     "uid": "prometheus"
@@ -370,7 +370,8 @@
      },
      "expr": "sum by (le) (increase(mlp_predicted_probability_bucket[1m]))",
      "legendFormat": "{{le}}",
-     "refId": "A"
+     "refId": "A",
+     "format": "heatmap"
     }
    ],
    "fieldConfig": {
@@ -382,7 +383,13 @@
    "options": {
     "calculate": false,
     "yAxis": {
-     "unit": "percentunit"
+     "unit": "short",
+     "decimals": 2
+    },
+    "cellGap": 1,
+    "color": {
+     "scheme": "Oranges",
+     "mode": "scheme"
     }
    }
   },

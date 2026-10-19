@@ -41,6 +41,7 @@ def test_predict_returns_one_probability_per_record_and_logs_inputs(client, fram
     for p in body["predictions"]:
         assert 0 <= p["probability"] <= 1
         assert p["readmit_30d"] == (p["probability"] >= 0.2)
+    client.app.state.inference_log.flush()
     logged = settings.inference_log_path.read_text().splitlines()
     assert len(logged) == 3
     assert json.loads(logged[0])["model_version"] == "7"

@@ -30,16 +30,32 @@ def load_records(n: int) -> list[dict]:
     return (records * (n // len(records) + 1))[:n]
 
 
-def run(client: httpx.Client, url: str, payloads: list[dict]) -> list[float]:
+def server_latency(client: httpx.Client, url: str) -> tuple[float, float]:
+    """(sum, count) of the API's own /predict latency histogram."""
+    total = count = 0.0
+    for line in client.get(f"{url}/metrics").text.splitlines():
+        if line.startswith("mlp_predict_latency_seconds_sum"):
+            total = float(line.split()[-1])
+        elif line.startswith("mlp_predict_latency_seconds_count"):
+            count = float(line.split()[-1])
+    return total, count
+
+
+def run(client: httpx.Client, url: str, payloads: list[dict]) -> tuple[list[float], float]:
+    """Client-side latencies, and the mean server-side handler time in ms."""
+    before = server_latency(client, url)
     latencies = []
     for payload in payloads:
         start = time.perf_counter()
         client.post(f"{url}/predict", json=payload).raise_for_status()
         latencies.append(time.perf_counter() - start)
-    return latencies
+    after = server_latency(client, url)
+    server_ms = 1000 * (after[0] - before[0]) / max(after[1] - before[1], 1)
+    return latencies, server_ms
 
 
-def summary(latencies: list[float], rows_per_call: int) -> dict:
+def summary(measured: tuple[list[float], float], rows_per_call: int) -> dict:
+    latencies, server_ms = measured
     ms = np.array(latencies) * 1000
     total = sum(latencies)
     return {
@@ -50,6 +66,7 @@ def summary(latencies: list[float], rows_per_call: int) -> dict:
         "p99_ms": float(np.percentile(ms, 99)),
         "mean_ms": float(statistics.fmean(ms)),
         "rows_per_second": len(latencies) * rows_per_call / total,
+        "server_mean_ms": server_ms,
     }
 
 

@@ -19,6 +19,8 @@ reproducible with one command.
 * **Retraining is gated too.** After a simulated EHR code remap, the deployed model fell
   from AUC 0.668 to 0.607. A model retrained on post-shift data recovered 0.668, and the
   gate promoted it (lift +0.061, CI [+0.048, +0.074]).
+* **Fast serving.** A verified fast encoding path cut server-side `/predict` time for one
+  record by 30× (about 21 ms → 0.70 ms). End-to-end p50 is 3.2 ms on the host.
 * **Reproducible.** `dvc repro` rebuilt the pipeline from the raw download and reproduced
   every metric to four decimals.
 
@@ -92,7 +94,8 @@ What the project shows:
 | `train.py` | Baseline and XGBoost trainers; threshold chosen on validation; MLflow logging, SHAP artifacts, registration as `challenger` |
 | `promote.py` | The gate: compares challenger and reference on the same test rows and moves `champion` only on a significant lift |
 | `export.py` | Champion → `model_bundle/` (model, threshold, key features, reference sample), so the image needs no tracking server |
-| `serve.py` | `/predict` with strict schema validation, `/ready` vs `/health`, Prometheus metrics, inference logging |
+| `serve.py` | `/predict` with strict schema validation, `/ready` vs `/health`, Prometheus metrics, asynchronous inference logging |
+| `fastpath.py` | Verified fast encoder for small requests (30× lower server time than the sklearn path) |
 | `monitor.py` | Evidently per-feature tests; alarm on drift share, key-feature drift or output drift; optional retrain + gate |
 | `simulate.py` | Drift scenarios, end-to-end loop through the API, retrain demo |
 
@@ -158,7 +161,7 @@ python -m ml_pipeline.monitor --retrain   # drift-triggered job: retrain challen
 ### Lint and test
 ```bash
 make lint     # ruff check + ruff format --check
-make test     # pytest: 53 tests, no network or Docker needed
+make test     # pytest: 57 tests, no network or Docker needed
 make format   # auto-fix lint and formatting
 ```
 
@@ -228,7 +231,41 @@ same gate promotes only where retraining measurably helps.
 
 ### Serving
 
-<!-- api-latency -->
+Measured with [`scripts/bench_api.py`](scripts/bench_api.py): 1,000 sequential
+single-record calls, then 50 calls of 100 records, all from the test split
+(`reports/api_latency.json`).
+
+| Setup | Single record p50 / p95 | Server-side handler time | 100-record batch p50 | Throughput (batched) |
+|---|---|---|---|---|
+| uvicorn on the host | **3.2 / 4.1 ms** | **0.56 ms** | 26 ms | 3,681 rows/s |
+| Docker container (Docker Desktop on Windows) | 47.5 / 49.2 ms | 0.70 ms | 25 ms | 2,738 rows/s |
+
+On Windows, Docker Desktop's port forwarding adds about 45 ms to every call. The server's
+own histogram shows the handler takes under 1 ms, so the rest is the forwarding layer.
+
+**Optimization: single-record latency.** Profiling one `/predict` call showed about 21 ms
+of server time: 14 ms in scikit-learn's `ColumnTransformer` + `OneHotEncoder`, which does
+per-column bookkeeping that costs the same for 1 row as for 100, 5 ms writing the inference
+log, and 2 ms building a DataFrame. Two changes fixed it:
+
+* **A verified fast encoder** ([`fastpath.py`](src/ml_pipeline/fastpath.py)), used for
+  requests of up to 32 rows. It is built from the fitted preprocessor (scaler parameters
+  and the one-hot layout, including the "infrequent" bucket) and encodes records with dict
+  lookups. It is switched on only after it reproduces the sklearn probabilities on the
+  reference sample to within 1e-9; otherwise the API stays on sklearn. Tests check
+  that it matches exactly for both model types and for unseen categories.
+* **An asynchronous inference log** that writes on a background thread and flushes on
+  shutdown.
+
+Result: server-side time per single-record call fell from about 21 ms to **0.70 ms (30×)**,
+and the Docker p50 fell from 64.7 ms to 47.5 ms. Larger batches still use sklearn, which is
+faster per row at volume.
+
+![Grafana](docs/grafana-dashboard.png)
+
+*Grafana dashboard during the [demo session](docs/demo.md): traffic, latency (the drop at
+04:05 is the fast path going live), drift share, the drift alarm and the predicted-risk
+distribution.*
 
 ## Milestones
 
@@ -267,7 +304,7 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 ### M7: Docs, benchmarks & demo
 - [x] README with measured results vs baseline
 - [x] Drift simulation write-up
-- [ ] Demo recording
+- [x] Demo: [recorded session transcript](docs/demo.md) with dashboard screenshot
 
 ## Project Layout
 ```
@@ -281,10 +318,11 @@ Milestones follow [SHARED_STANDARDS.md](../SHARED_STANDARDS.md). Each one has a 
 │   ├── train.py         # baseline + XGBoost/Optuna, SHAP, MLflow registration
 │   ├── promote.py       # champion/challenger gate (paired bootstrap)
 │   ├── export.py        # champion -> serving bundle
-│   ├── serve.py         # FastAPI service, Prometheus metrics, inference log
+│   ├── serve.py         # FastAPI service, Prometheus metrics, async inference log
+│   ├── fastpath.py      # verified low-latency encoder for small requests
 │   ├── monitor.py       # Evidently drift check + alarm rules + retrain trigger
 │   └── simulate.py      # drift scenarios, end-to-end loop, retrain demo
-├── tests/               # 53 tests: data, validation, training, gate, API, drift
+├── tests/               # 57 tests: data, validation, training, gate, API, fast path, drift
 ├── dvc.yaml, dvc.lock, params.yaml
 ├── reports/             # committed metrics JSON, gate decision, drift simulation
 ├── deploy/              # Prometheus config + alert rules, Grafana dashboard

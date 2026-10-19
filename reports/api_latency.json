@@ -1,0 +1,25 @@
+{
+  "label": "uvicorn on the host, fast path",
+  "url": "http://127.0.0.1:8021",
+  "machine": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel / Windows",
+  "single": {
+    "calls": 1000,
+    "rows_per_call": 1,
+    "p50_ms": 3.1559500203002244,
+    "p95_ms": 4.13362498220522,
+    "p99_ms": 4.5069079753011465,
+    "mean_ms": 3.1956774013815448,
+    "rows_per_second": 312.9226997592696,
+    "server_mean_ms": 0.556681401678361
+  },
+  "batched": {
+    "calls": 50,
+    "rows_per_call": 100,
+    "p50_ms": 26.401300012366846,
+    "p95_ms": 35.04892001219559,
+    "p99_ms": 40.5146679963218,
+    "mean_ms": 27.162891998887062,
+    "rows_per_second": 3681.4931195138306,
+    "server_mean_ms": 20.489605999318883
+  }
+}

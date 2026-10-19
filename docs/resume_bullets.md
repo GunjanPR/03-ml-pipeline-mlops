@@ -28,10 +28,16 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    and the model was promoted only because the gate measured a significant lift
    (+0.061, CI +0.048 to +0.074). *(reports/drift_simulation.md)*
 
-5. Shipped CI/CD (GitHub Actions) that lints and runs 53 tests, reproduces the DVC
+5. Shipped CI/CD (GitHub Actions) that lints and runs 57 tests, reproduces the DVC
    pipeline on real data, gates the model, builds an immutable serving image with the
    champion baked in, and deploys it to a kind Kubernetes cluster to call `/predict` and
    run the drift CronJob on every push. *(.github/workflows/ci.yml)*
+
+6. Cut server-side `/predict` latency for single-record requests by 30× (about 21 ms →
+   0.70 ms; host end-to-end p50 3.2 ms over 1,000 calls) against the scikit-learn pipeline.
+   The fix was a fast encoder built from the fitted preprocessor that only switches on
+   after it reproduces the sklearn probabilities to 1e-9, plus asynchronous inference
+   logging. *(reports/api_latency.json, README "Serving")*
 
 **Short version (one line):** Built a gated MLOps pipeline (MLflow, DVC, Evidently,
 Kubernetes) whose drift alarms caught 4/5 simulated shifts with 0 false alarms and whose
