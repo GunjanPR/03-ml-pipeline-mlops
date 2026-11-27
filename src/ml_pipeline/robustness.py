@@ -9,7 +9,7 @@ Four questions a reviewer asks about the gate's decision:
 1. **Clinical baseline.** Hospitals use the LACE index (Length of stay, Acuity, Charlson
    comorbidity, ED visits), not logistic regression. How does a LACE score computed from this
    extract rank patients on the same test rows?
-2. **Tuned baseline.** The champion logistic regression ran with sklearn defaults (C = 1).
+2. **Tuned baseline.** The logistic-regression baseline ran with sklearn defaults (C = 1).
    Does tuning C on val change the comparison?
 3. **Tuning variance.** One Optuna search moved test AUC by about 0.005 across machines. What
    is the spread of the XGBoost lift over several search seeds?
@@ -344,7 +344,7 @@ ROC-AUC CIs are 1,000-sample bootstraps; lifts use the paired bootstrap from the
 | Score | Test ROC-AUC (95% CI) |
 |---|---|
 | LACE (computed from this extract) | {_ci(la)} |
-| Logistic regression (champion) | {_ci(r["logreg_default"])} |
+| Logistic regression (baseline) | {_ci(r["logreg_default"])} |
 | XGBoost (committed run) | {_ci(r["xgboost_committed"])} |
 
 Logistic regression minus LACE: {_lift(la["logreg_minus_lace"])}. XGBoost minus LACE:

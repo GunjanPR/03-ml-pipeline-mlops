@@ -261,6 +261,7 @@ def train(
         "val_roc_auc": val["roc_auc"],
         "test_roc_auc": test["roc_auc"],
         "key_features": ",".join(result.get("key_features", [])),
+        "split_strategy": settings.split_strategy,
     }.items():
         client.set_model_version_tag(settings.registered_model_name, version, key, str(value))
     client.set_registered_model_alias(settings.registered_model_name, CHALLENGER, version)

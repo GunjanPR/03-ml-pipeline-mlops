@@ -119,3 +119,20 @@ def test_registered_version_carries_key_features(prepared):
     version = MlflowClient().get_model_version_by_alias(prepared.registered_model_name, CHALLENGER)
     keys = version.tags["key_features"].split(",")
     assert len(keys) == 5 and all(k in FEATURES for k in keys)
+
+
+def test_gate_ignores_a_champion_trained_on_another_split(prepared):
+    """A champion from the old split may have trained on today's test rows; the gate must
+    compare with a baseline from the current split and serve that if the challenger fails."""
+    name = prepared.registered_model_name
+    train("baseline", prepared.model_copy(update={"split_strategy": "grouped"}), shap=False)
+    assert promote(prepared.model_copy(update={"split_strategy": "grouped"})) is None
+    train("baseline", prepared, shap=False)  # v2, current split
+    train("xgboost", prepared, shap=False)  # v3
+    gate = promote(prepared)
+    assert gate.reference_version == 2
+    assert "trained on the 'grouped' split" in gate.reference_note
+    client = MlflowClient()
+    champion = str(client.get_model_version_by_alias(name, CHAMPION).version)
+    assert champion == ("3" if gate.passed else "2")
+    assert client.get_model_version(name, "2").tags["split_strategy"] == prepared.split_strategy

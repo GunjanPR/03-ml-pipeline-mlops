@@ -31,6 +31,16 @@ def test_fast_path_matches_sklearn_exactly(frames, settings, trainer):
     assert build_fast_scorer(pipeline, frames["val"][FEATURES]) is not None
 
 
+def test_fast_path_matches_xgboost_when_the_preprocessor_output_is_sparse(frames, settings):
+    """On the real data the one-hot output is sparse, and XGBoost reads a sparse matrix's absent
+    entries as missing, not 0. The fast path must hand it the same kind of matrix."""
+    pipeline = fit_xgboost(frames, settings).pipeline
+    pipeline["prep"].sparse_output_ = True  # what the fitted transformer does on real data
+    test = _with_unseen_values(frames["test"][FEATURES])
+    fast = FastScorer(pipeline).predict_proba(test.to_dict("records"))
+    np.testing.assert_allclose(fast, pipeline.predict_proba(test)[:, 1], atol=1e-9)
+
+
 def test_fast_path_is_refused_without_a_reference_or_on_mismatch(frames, settings, monkeypatch):
     import ml_pipeline.fastpath as fastpath
 

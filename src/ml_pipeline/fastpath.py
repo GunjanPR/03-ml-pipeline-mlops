@@ -6,6 +6,12 @@ small batches the API instead encodes each record with plain dict lookups built 
 *fitted* preprocessor (scaler means/scales, one-hot layout including the "infrequent"
 bucket), then calls the fitted model on the resulting matrix.
 
+When the fitted `ColumnTransformer` emits a sparse matrix (it does on the real data, where
+one-hot columns make the output less than 30% dense), the fast path hands the model a sparse
+matrix too. This matters for XGBoost, which treats a sparse matrix's absent entries as
+*missing* but a dense zero as the value 0, so the same numbers scored dense and sparse give
+different trees paths. Logistic regression gives the same answer either way.
+
 The fast path is only switched on after it reproduces the sklearn pipeline's probabilities
 on a reference sample (max abs difference < 1e-9); otherwise the API keeps using sklearn.
 """
@@ -16,6 +22,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -37,6 +44,7 @@ class FastScorer:
             raise TypeError("unsupported preprocessor layout")
         if encoder.drop_idx_ is not None:
             raise TypeError("one-hot drop is not supported")
+        self.sparse = bool(getattr(prep, "sparse_output_", False))
         self.numeric = list(numeric)
         self.mean = scaler.mean_
         self.scale = scaler.scale_
@@ -66,7 +74,8 @@ class FastScorer:
         return x
 
     def predict_proba(self, records: list[dict]) -> np.ndarray:
-        return self.model.predict_proba(self.transform(records))[:, 1]
+        x = self.transform(records)
+        return self.model.predict_proba(sparse.csr_matrix(x) if self.sparse else x)[:, 1]
 
 
 def build_fast_scorer(pipeline, reference: pd.DataFrame | None) -> FastScorer | None:

@@ -2,7 +2,7 @@
 
     python -m ml_pipeline.age_gap     # writes reports/age_gap.json and reports/age_gap.md
 
-The audit (`ml_pipeline.audit`) shows the champion ranks patients under 40 far better than
+The audit (`ml_pipeline.audit`) shows the logistic-regression baseline ranks patients under 40 far better than
 patients over 80 (test AUC 0.745 vs 0.619). This module answers three questions, with the
 same protocol as training (choices on train/val, test touched once at the end):
 
@@ -160,7 +160,7 @@ def signal_by_band(train: pd.DataFrame) -> dict:
 
 
 def phenotype_auc(test: pd.DataFrame, p: np.ndarray) -> dict:
-    """Champion test AUC inside the youngest band, split by the diabetes-crisis phenotype."""
+    """Baseline test AUC inside the youngest band, split by the diabetes-crisis phenotype."""
     young = age_band(test) == "<40"
     crisis = ((test["cc_dka_or_coma"] + test["cc_uncontrolled_diabetes"]) > 0).to_numpy()
     y = test[D.TARGET].to_numpy()
@@ -221,7 +221,7 @@ def model_attempts(train: pd.DataFrame, val: pd.DataFrame, settings: Settings) -
         log.info("%s: %s", name, {k: round(v, 4) for k, v in results[name].items()})
         return p
 
-    score("logistic regression (champion recipe)", _logistic(base, seed), base)
+    score("logistic regression (baseline recipe)", _logistic(base, seed), base)
     score("+ comorbidity flags", _logistic(flags, seed), flags)
     per_band = np.zeros(len(val))
     cols = flags + D.CATEGORICAL_FEATURES
@@ -352,7 +352,7 @@ def markdown(report: dict) -> str:
     ph = report["young_phenotype_test"]
     lines += [
         "",
-        "Champion test AUC inside the under-40 band: "
+        "Baseline (logistic regression) test AUC inside the under-40 band: "
         f"{ph['acute_or_uncontrolled']['roc_auc']:.3f} for the "
         f"{ph['acute_or_uncontrolled']['n']} encounters with an acute or uncontrolled "
         f"diabetes code, {ph['other']['roc_auc']:.3f} for the other {ph['other']['n']}.",
@@ -371,7 +371,7 @@ def markdown(report: dict) -> str:
     pol = report["threshold_policies"]
     lines += [
         "",
-        "## 3. Decision thresholds (champion, test split)",
+        "## 3. Decision thresholds (logistic-regression baseline, test split)",
         "",
         f"Per-band thresholds are fitted on val so each band reaches the val sensitivity of "
         f"the global threshold ({pol['target_tpr_val']:.3f}).",
@@ -417,7 +417,7 @@ def run(settings: Settings | None = None) -> dict:
     if abs(refit_auc - committed["roc_auc"]) > 1e-6:
         # lbfgs results differ slightly across platforms (Windows vs Linux: 0.6682 vs 0.6679)
         log.warning(
-            "refitted champion test AUC %.6f != reports/baseline_metrics.json %.6f; "
+            "refitted baseline test AUC %.6f != reports/baseline_metrics.json %.6f; "
             "this report will not match reports/audit.md exactly",
             refit_auc,
             committed["roc_auc"],

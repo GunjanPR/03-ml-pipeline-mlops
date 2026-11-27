@@ -11,6 +11,11 @@ on the same held-out test rows, and the gate requires all of:
 * the lower bound of a paired-bootstrap 95% CI for that lift above zero;
 * Brier score no worse than the reference by more than `MAX_BRIER_INCREASE`.
 
+The reference must have been trained on the same split as the challenger (version tag
+`split_strategy`; untagged versions predate the tag and count as `grouped`). A champion from
+another split may have trained on today's test rows, so its score means nothing: the gate then
+falls back to the latest baseline trained on the current split, and says so in gate.json.
+
 The decision is written to `reports/gate.json` and the challenger version is tagged with it.
 """
 
@@ -53,6 +58,7 @@ class GateResult:
     min_auc_lift: float
     passed: bool
     reasons: list[str]
+    reference_note: str = ""
 
 
 def paired_bootstrap_auc_diff(
@@ -101,16 +107,40 @@ def decide(
     return not reasons, stats
 
 
-def _reference(client: MlflowClient, name: str):
+LEGACY_SPLIT = "grouped"  # versions registered before the split_strategy tag existed
+
+
+def split_of(version) -> str:
+    return version.tags.get("split_strategy", LEGACY_SPLIT)
+
+
+def _latest_baseline(client: MlflowClient, name: str, split: str):
+    versions = client.search_model_versions(
+        f"name='{name}' and tag.model_kind='baseline'", order_by=["version_number DESC"]
+    )
+    return next((v for v in versions if split_of(v) == split), None)
+
+
+def _reference(client: MlflowClient, name: str, split: str):
+    """(reference version, note). The champion if it was trained on `split`, else the latest
+    baseline that was."""
     try:
-        return client.get_model_version_by_alias(name, CHAMPION)
+        champion = client.get_model_version_by_alias(name, CHAMPION)
     except MlflowException:
-        versions = client.search_model_versions(
-            f"name='{name}' and tag.model_kind='baseline'", order_by=["version_number DESC"]
-        )
-        if not versions:
-            raise SystemExit("no champion and no baseline version registered") from None
-        return versions[0]
+        champion = None
+    if champion is not None and split_of(champion) == split:
+        return champion, ""
+    baseline = _latest_baseline(client, name, split)
+    if baseline is None:
+        raise SystemExit(f"no champion or baseline trained on the {split!r} split is registered")
+    if champion is None:
+        return baseline, ""
+    note = (
+        f"champion v{champion.version} was trained on the {split_of(champion)!r} split, not "
+        f"{split!r}; compared with baseline v{baseline.version} instead"
+    )
+    log.warning(note)
+    return baseline, note
 
 
 def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResult | None:
@@ -119,9 +149,9 @@ def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResu
     client = MlflowClient()
     name = settings.registered_model_name
     challenger = client.get_model_version_by_alias(name, CHALLENGER)
-    reference = _reference(client, name)
+    reference, note = _reference(client, name, settings.split_strategy)
     if str(challenger.version) == str(reference.version):
-        if CHAMPION not in reference.aliases and not dry_run:
+        if (CHAMPION not in reference.aliases or note) and not dry_run:
             # First run: the baseline itself becomes the initial champion.
             client.set_registered_model_alias(name, CHAMPION, challenger.version)
             log.info("no champion yet: baseline v%s set as champion", challenger.version)
@@ -144,6 +174,7 @@ def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResu
         min_auc_lift=settings.min_auc_lift,
         passed=passed,
         **stats,
+        reference_note=note,
     )
     client.set_model_version_tag(
         name, challenger.version, "gate", "passed" if passed else "blocked"
@@ -152,7 +183,8 @@ def promote(settings: Settings | None = None, dry_run: bool = False) -> GateResu
         if passed:
             client.set_registered_model_alias(name, CHAMPION, challenger.version)
         elif CHAMPION not in reference.aliases:
-            # Blocked with no champion yet: serve the baseline rather than nothing.
+            # Blocked with no champion yet (or a champion from another split): serve the
+            # baseline rather than nothing.
             client.set_registered_model_alias(name, CHAMPION, reference.version)
     settings.reports_dir.mkdir(parents=True, exist_ok=True)
     (settings.reports_dir / "gate.json").write_text(json.dumps(asdict(result), indent=2))

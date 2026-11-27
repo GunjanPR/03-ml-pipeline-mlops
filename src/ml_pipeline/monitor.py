@@ -56,10 +56,19 @@ class DriftResult:
     report_html: str = ""
 
 
+def reference_split(settings: Settings) -> str:
+    """Which split drift is measured against. With the time-ordered split, val is the most
+    recent period before the test (deployment) window; the training period is years older,
+    and admission coding drifted in between, so a train reference alarms on unshifted
+    batches. With the grouped split every split covers the same period, so train is used."""
+    return "val" if settings.split_strategy == "time" else "train"
+
+
 def reference_frame(settings: Settings, model=None) -> pd.DataFrame:
-    """Training rows (sampled), with the model's predictions when a model is given."""
-    train = load_splits(settings)["train"]
-    sample = train.sample(min(REFERENCE_ROWS, len(train)), random_state=settings.random_seed)
+    """Reference rows (sampled; see `reference_split`), with the model's predictions when a
+    model is given."""
+    frame = load_splits(settings)[reference_split(settings)]
+    sample = frame.sample(min(REFERENCE_ROWS, len(frame)), random_state=settings.random_seed)
     ref = sample[FEATURES].reset_index(drop=True)
     if model is not None:
         ref[PREDICTION] = model.predict_proba(ref)[:, 1]
