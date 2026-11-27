@@ -1,6 +1,9 @@
 # Experiment parameters tracked by DVC (dvc.yaml `params:`). Read by ml_pipeline.config;
 # environment variables and .env override them.
 random_seed: 42
+# time = earliest 70% of encounters train, next 15% val, latest 15% test (the gate's test set);
+# grouped = the earlier random patient-grouped split
+split_strategy: time
 optuna_n_trials: 50
 min_auc_lift: 0.01
 drift_threshold: 0.3

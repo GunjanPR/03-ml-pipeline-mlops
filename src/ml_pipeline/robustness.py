@@ -13,9 +13,11 @@ Four questions a reviewer asks about the gate's decision:
    Does tuning C on val change the comparison?
 3. **Tuning variance.** One Optuna search moved test AUC by about 0.005 across machines. What
    is the spread of the XGBoost lift over several search seeds?
-4. **Time-ordered split.** The main split is random by patient. Training on the earliest
-   encounters and testing on the latest (`encounter_id` follows time) checks the result under
-   the kind of shift a deployed model sees.
+4. **The other split.** The gate uses a time-ordered split (since 2026-11-27: train on the
+   earliest encounters, test on the latest; `encounter_id` follows time). Re-running the same
+   recipes on the earlier random patient-grouped split shows how much the choice of split
+   moves the decision. (Before the switch this section ran the time-ordered split and found
+   the lift that led to it.)
 
 The test split is the same gating set the promotion gate uses; nothing here changes the
 registry or the champion.
@@ -144,8 +146,8 @@ def lace_scores(frame: pd.DataFrame) -> np.ndarray:
 
 # --------------------------------------------------------------------------------- data
 def frames_with_extras(settings: Settings) -> dict[str, pd.DataFrame]:
-    """The same patient-grouped splits as `data.prepare`, plus `encounter_id` and the raw
-    ICD-9 codes, which the processed files drop."""
+    """The same splits as `data.prepare`, plus the raw ICD-9 codes, which the processed files
+    drop."""
     raw = load_raw(settings.raw_dir / "diabetic_data.csv")
     cleaned = clean(raw)
     kept = raw[~raw["discharge_disposition_id"].isin(EXCLUDED_DISCHARGE_IDS)].reset_index(drop=True)
@@ -154,15 +156,18 @@ def frames_with_extras(settings: Settings) -> dict[str, pd.DataFrame]:
     df["encounter_id"] = kept["encounter_id"].values
     for i in (1, 2, 3):
         df[f"diag_{i}"] = kept[f"diag_{i}"].fillna("missing").astype(str).values
-    return {"random": split(df, settings.random_seed), "df": df}  # type: ignore[dict-item]
+    gate = split(df, settings.random_seed, strategy=settings.split_strategy)
+    return {"gate": gate, "df": df}  # type: ignore[dict-item]
 
 
-def time_split(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Earliest 70% of encounters train, next 15% val, latest 15% test."""
-    ordered = df.sort_values("encounter_id").reset_index(drop=True)
-    n = len(ordered)
-    a, b = int(0.70 * n), int(0.85 * n)
-    return {"train": ordered.iloc[:a], "val": ordered.iloc[a:b], "test": ordered.iloc[b:]}
+def other_strategy(strategy: str) -> str:
+    return "grouped" if strategy == "time" else "time"
+
+
+SPLIT_LABELS = {
+    "time": "Time-ordered split (train on the earliest 70% of encounters, test on the latest 15%)",
+    "grouped": "Random patient-grouped split (the gate's split before 2026-11-27)",
+}
 
 
 def auc_with_ci(y: np.ndarray, p: np.ndarray) -> dict[str, float]:
@@ -208,7 +213,7 @@ def prob(pipe: Pipeline, frame: pd.DataFrame) -> np.ndarray:
 # ---------------------------------------------------------------------------------- run
 def run(settings: Settings, n_seeds: int) -> dict:
     built = frames_with_extras(settings)
-    splits, df = built["random"], built["df"]
+    splits, df = built["gate"], built["df"]
     processed_test = pd.read_parquet(settings.processed_dir / "test.parquet")
     assert (splits["test"][GROUP].values == processed_test[GROUP].values).all(), (
         "splits differ from data/processed; run `dvc repro prepare` first"
@@ -216,7 +221,11 @@ def run(settings: Settings, n_seeds: int) -> dict:
     test = splits["test"]
     y = test[TARGET].to_numpy()
     seed = settings.random_seed
-    result: dict = {"n_test": int(len(test)), "positive_rate": float(y.mean())}
+    result: dict = {
+        "split_strategy": settings.split_strategy,
+        "n_test": int(len(test)),
+        "positive_rate": float(y.mean()),
+    }
 
     base = fit_baseline(splits, settings).pipeline
     p_base = prob(base, test)
@@ -248,7 +257,7 @@ def run(settings: Settings, n_seeds: int) -> dict:
     cache = json.loads(SEED_CACHE.read_text()) if SEED_CACHE.exists() else {}
     seeds = [seed + i for i in range(n_seeds)]
     for s in seeds:
-        key = f"{s}:{settings.optuna_n_trials}"
+        key = f"{settings.split_strategy}:{s}:{settings.optuna_n_trials}"
         if key in cache:
             continue
         start = time.perf_counter()
@@ -263,7 +272,7 @@ def run(settings: Settings, n_seeds: int) -> dict:
         }
         SEED_CACHE.write_text(json.dumps(cache, indent=2))
         log.info("seed %d: test AUC %.4f", s, cache[key]["test_auc"])
-    runs = [cache[f"{s}:{settings.optuna_n_trials}"] for s in seeds]
+    runs = [cache[f"{settings.split_strategy}:{s}:{settings.optuna_n_trials}"] for s in seeds]
     lifts = np.array([r["minus_default"]["lift"] for r in runs])
     gate_pass = [
         r["minus_default"]["lift"] >= settings.min_auc_lift and r["minus_default"]["ci_low"] > 0
@@ -281,14 +290,16 @@ def run(settings: Settings, n_seeds: int) -> dict:
         "gate_would_pass": int(sum(gate_pass)),
     }
 
-    # 4. time-ordered split, no re-tuning (same recipes and XGBoost parameters)
-    ts = time_split(df)
+    # 4. the other split, no re-tuning (same recipes and XGBoost parameters)
+    alt = other_strategy(settings.split_strategy)
+    ts = split(df, seed, strategy=alt)
     yt = ts["test"][TARGET].to_numpy()
     t_base = prob(fit_baseline(ts, settings).pipeline, ts["test"])
     t_xgb = prob(xgb_fixed(ts, xgb_params, seed), ts["test"])
     t_lace = lace_scores(ts["test"])
     seen = ts["test"][GROUP].isin(set(ts["train"][GROUP])).to_numpy()
-    result["time_split"] = {
+    result["other_split"] = {
+        "strategy": alt,
         "n_train": int(len(ts["train"])),
         "n_test": int(len(ts["test"])),
         "test_positive_rate": float(yt.mean()),
@@ -315,7 +326,7 @@ def _lift(d: dict) -> str:
 
 
 def to_markdown(r: dict) -> str:
-    la, lt, sd, ts = r["lace"], r["logreg_tuned"], r["xgboost_seeds"], r["time_split"]
+    la, lt, sd, ts = r["lace"], r["logreg_tuned"], r["xgboost_seeds"], r["other_split"]
     rows = "\n".join(
         f"| {x['seed']} | {_f(x['test_auc'])} | {_lift(x['minus_default'])} | "
         f"depth {x['params'].get('max_depth')}, {x['params'].get('n_estimators')} trees |"
@@ -323,8 +334,9 @@ def to_markdown(r: dict) -> str:
     )
     return f"""# Robustness of the model comparison
 
-Generated by `python -m ml_pipeline.robustness` (a DVC stage). Test = the same
-{r["n_test"]:,} gating rows as the promotion gate ({100 * r["positive_rate"]:.1f}% readmitted).
+Generated by `python -m ml_pipeline.robustness` (a DVC stage). Gate split:
+`{r["split_strategy"]}`. Test = the same {r["n_test"]:,} gating rows as the promotion gate
+({100 * r["positive_rate"]:.1f}% readmitted).
 ROC-AUC CIs are 1,000-sample bootstraps; lifts use the paired bootstrap from the gate.
 
 ## 1. Clinical baseline: LACE index
@@ -360,13 +372,12 @@ Lift mean {sd["lift_mean"]:+.4f}, SD {sd["lift_sd"]:.4f}, range {sd["lift_min"]:
 {sd["lift_max"]:+.4f}. The gate (lift >= +0.01 and CI above 0) would promote XGBoost in
 {sd["gate_would_pass"]} of {len(sd["runs"])} searches.
 
-## 4. Time-ordered split (train on the earliest 70% of encounters, test on the latest 15%)
+## 4. For comparison: {SPLIT_LABELS[ts["strategy"]]}
 
 {ts["n_train"]:,} train / {ts["n_test"]:,} test encounters,
 {100 * ts["test_positive_rate"]:.1f}% readmitted in test;
-{100 * ts["test_patients_seen_in_train"]:.1f}% of test encounters belong to a patient with an
-earlier encounter in train (allowed: a deployed model sees returning patients). Same recipes,
-no re-tuning.
+{100 * ts["test_patients_seen_in_train"]:.1f}% of test encounters belong to a patient seen in
+train. Same recipes and XGBoost parameters as the gate's run, no re-tuning.
 
 | Model | Test ROC-AUC (95% CI) |
 |---|---|

@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     )
 
     random_seed: int = 42
+    # How data.prepare splits train/val/test: "time" (by encounter_id) or "grouped" (by patient)
+    split_strategy: str = "time"
     optuna_n_trials: int = 50
 
     min_auc_lift: float = 0.01

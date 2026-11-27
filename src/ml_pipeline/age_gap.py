@@ -109,7 +109,7 @@ def splits_with_codes(settings: Settings) -> dict[str, pd.DataFrame]:
         {f"code_{i}": codes[f"diag_{i}"].fillna("missing").astype(str) for i in (1, 2, 3)}
     ).reset_index(drop=True)
     frame = pd.concat([D.clean(raw), codes], axis=1)
-    frames = D.split(frame, seed=settings.random_seed)
+    frames = D.split(frame, seed=settings.random_seed, strategy=settings.split_strategy)
     processed = D.load_splits(settings)
     for name, f in frames.items():
         ref = processed[name]

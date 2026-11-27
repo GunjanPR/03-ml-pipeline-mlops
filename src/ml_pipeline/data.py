@@ -28,6 +28,8 @@ log = logging.getLogger(__name__)
 RAW_FILE = "diabetic_data.csv"
 TARGET = "readmitted_30d"
 GROUP = "patient_nbr"
+ORDER = "encounter_id"  # increases with admission time; the default split cuts on it
+SPLIT_STRATEGIES = ("time", "grouped")
 SPLITS = ("train", "val", "test")
 
 # Discharged to hospice or expired: these patients cannot be readmitted, so they are dropped
@@ -148,7 +150,7 @@ def add_history_features(raw: pd.DataFrame) -> pd.DataFrame:
 
 def clean(raw: pd.DataFrame) -> pd.DataFrame:
     """Derive history features (on all encounters), filter, derive the target and the
-    remaining features. Output columns: GROUP, FEATURES, TARGET."""
+    remaining features. Output columns: ORDER, GROUP, FEATURES, TARGET."""
     df = add_history_features(raw)
     df = df[~df["discharge_disposition_id"].isin(EXCLUDED_DISCHARGE_IDS)].copy()
     for i in (1, 2, 3):
@@ -157,13 +159,37 @@ def clean(raw: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].fillna("missing").astype(str)
     df[NUMERIC_FEATURES] = df[NUMERIC_FEATURES].astype(float)
     df[TARGET] = (df["readmitted"] == "<30").astype(int)
-    return df[[GROUP, *FEATURES, TARGET]].reset_index(drop=True)
+    return df[[ORDER, GROUP, *FEATURES, TARGET]].reset_index(drop=True)
 
 
 def split(
-    df: pd.DataFrame, seed: int, val_size: float = 0.15, test_size: float = 0.15
+    df: pd.DataFrame,
+    seed: int,
+    val_size: float = 0.15,
+    test_size: float = 0.15,
+    strategy: str = "time",
 ) -> dict[str, pd.DataFrame]:
-    """Patient-grouped train / val / test split."""
+    """Train / val / test split.
+
+    `time` (the default since 2026-11-27): the earliest encounters train, the next `val_size`
+    validate and the latest `test_size` test, ordered by `encounter_id`. That is what a deployed
+    model faces: it is trained on the past and scored on later admissions, including returning
+    patients. `grouped`: the earlier random split, grouped by patient so no patient spans two
+    splits. On `grouped`, logistic regression scored 0.668 and XGBoost's lift was +0.008
+    (blocked); on `time` the baseline falls to 0.645 and the lift grows to +0.029 (see
+    reports/robustness.md).
+    """
+    if strategy not in SPLIT_STRATEGIES:
+        raise ValueError(f"unknown split strategy {strategy!r}; use one of {SPLIT_STRATEGIES}")
+    if strategy == "time":
+        ordered = df.sort_values(ORDER, kind="stable").reset_index(drop=True)
+        n = len(ordered)
+        a, b = int(round((1 - val_size - test_size) * n)), int(round((1 - test_size) * n))
+        return {
+            "train": ordered.iloc[:a].reset_index(drop=True),
+            "val": ordered.iloc[a:b].reset_index(drop=True),
+            "test": ordered.iloc[b:].reset_index(drop=True),
+        }
     outer = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
     rest_idx, test_idx = next(outer.split(df, groups=df[GROUP]))
     rest = df.iloc[rest_idx]
@@ -207,7 +233,9 @@ def prepare(settings: Settings | None = None) -> dict[str, pd.DataFrame]:
     raw = validate(load_raw(fetch(settings)), RAW_SCHEMA, "raw")
     frames = {
         name: validate(frame, PROCESSED_SCHEMA, f"processed/{name}")
-        for name, frame in split(clean(raw), seed=settings.random_seed).items()
+        for name, frame in split(
+            clean(raw), seed=settings.random_seed, strategy=settings.split_strategy
+        ).items()
     }
     settings.processed_dir.mkdir(parents=True, exist_ok=True)
     for name, frame in frames.items():

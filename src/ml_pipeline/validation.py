@@ -18,6 +18,7 @@ from ml_pipeline.data import (
     GROUP,
     MEDICATIONS,
     NUMERIC_FEATURES,
+    ORDER,
     RAW_NUMERIC_FEATURES,
     TARGET,
 )
@@ -52,6 +53,7 @@ RAW_SCHEMA = pa.DataFrameSchema(
 
 PROCESSED_SCHEMA = pa.DataFrameSchema(
     {
+        ORDER: pa.Column(int, unique=True),
         GROUP: pa.Column(int),
         **{col: pa.Column(float, pa.Check.ge(0)) for col in NUMERIC_FEATURES},
         **{col: pa.Column(str, pa.Check.str_length(min_value=1)) for col in CATEGORICAL_FEATURES},

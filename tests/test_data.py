@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import fake_raw
-from ml_pipeline.data import FEATURES, GROUP, TARGET, clean, icd9_group, split
+from ml_pipeline.data import FEATURES, GROUP, ORDER, TARGET, clean, icd9_group, split
 
 
 @pytest.mark.parametrize(
@@ -26,19 +26,35 @@ def test_clean_drops_hospice_and_expired_and_builds_target():
     raw = fake_raw()
     df = clean(raw)
     assert len(df) == (raw["discharge_disposition_id"] != 11).sum()
-    assert list(df.columns) == [GROUP, *FEATURES, TARGET]
+    assert list(df.columns) == [ORDER, GROUP, *FEATURES, TARGET]
     assert set(df[TARGET].unique()) <= {0, 1}
     assert df[FEATURES].isna().sum().sum() == 0
 
 
 def test_split_is_grouped_by_patient_and_covers_all_rows():
     df = clean(fake_raw())
-    parts = split(df, seed=1)
+    parts = split(df, seed=1, strategy="grouped")
     patients = [set(parts[name][GROUP]) for name in ("train", "val", "test")]
     assert not patients[0] & patients[1]
     assert not patients[0] & patients[2]
     assert not patients[1] & patients[2]
     assert sum(len(p) for p in parts.values()) == len(df)
+
+
+def test_time_split_trains_on_the_past_and_tests_on_the_latest():
+    df = clean(fake_raw()).sample(frac=1.0, random_state=3)  # order must not matter
+    parts = split(df, seed=1)  # default strategy: time
+    assert sum(len(p) for p in parts.values()) == len(df)
+    assert parts["train"][ORDER].max() < parts["val"][ORDER].min()
+    assert parts["val"][ORDER].max() < parts["test"][ORDER].min()
+    assert abs(len(parts["test"]) - 0.15 * len(df)) <= 1
+
+
+def test_unknown_split_strategy_is_rejected():
+    import pytest
+
+    with pytest.raises(ValueError):
+        split(clean(fake_raw()), seed=1, strategy="random")
 
 
 def test_split_is_deterministic():
