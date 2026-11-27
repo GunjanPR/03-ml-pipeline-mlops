@@ -1,81 +1,81 @@
 {
   "model": "baseline",
-  "n_train": 69510,
+  "n_train": 69540,
   "params": {
     "C": 1.0
   },
   "excluded_features": [],
   "val": {
-    "roc_auc": 0.64873602326523,
-    "pr_auc": 0.21206037455229124,
-    "f1": 0.26651693804978477,
-    "brier": 0.09719538665643636,
-    "threshold": 0.13237647546150613,
-    "positive_rate": 0.11393672406888265,
-    "n": 14982
+    "roc_auc": 0.6437643444246955,
+    "pr_auc": 0.20883091325263556,
+    "f1": 0.26605033384694404,
+    "brier": 0.09579937883849036,
+    "threshold": 0.1367982600212302,
+    "positive_rate": 0.11146154878539793,
+    "n": 14902
   },
   "test": {
-    "roc_auc": 0.667882001593084,
-    "pr_auc": 0.22024285144110878,
-    "f1": 0.2732872876610043,
-    "brier": 0.09447092199983693,
-    "threshold": 0.13237647546150613,
-    "positive_rate": 0.11110362938522658,
-    "n": 14851,
-    "roc_auc_ci_low": 0.6533877668216825,
-    "roc_auc_ci_high": 0.6810485737657885
+    "roc_auc": 0.6452299997500405,
+    "pr_auc": 0.20133668868931098,
+    "f1": 0.257001647446458,
+    "brier": 0.09324501983491813,
+    "threshold": 0.1367982600212302,
+    "positive_rate": 0.10784511106637139,
+    "n": 14901,
+    "roc_auc_ci_low": 0.6298912412044558,
+    "roc_auc_ci_high": 0.6598078169243952
   },
-  "fit_seconds": 9.202140488999703,
-  "predict_ms_per_1k_rows": 12.937381523123479,
+  "fit_seconds": 1.6891756999999643,
+  "predict_ms_per_1k_rows": 4.736266022409783,
   "top_features": [
     {
       "feature": "discharge_disposition_id_1",
-      "mean_abs_shap": 0.23119328888834373
+      "mean_abs_shap": 0.2741299367060374
     },
     {
       "feature": "number_inpatient",
-      "mean_abs_shap": 0.1544362343263036
-    },
-    {
-      "feature": "payer_code_missing",
-      "mean_abs_shap": 0.13772711298472995
+      "mean_abs_shap": 0.17680341526647458
     },
     {
       "feature": "medical_specialty_missing",
-      "mean_abs_shap": 0.107166406011531
-    },
-    {
-      "feature": "number_diagnoses",
-      "mean_abs_shap": 0.06354774786258885
-    },
-    {
-      "feature": "diabetesMed_No",
-      "mean_abs_shap": 0.06065423152067826
-    },
-    {
-      "feature": "total_prior_visits",
-      "mean_abs_shap": 0.060354095898421396
+      "mean_abs_shap": 0.10768192440130073
     },
     {
       "feature": "discharge_disposition_id_6",
-      "mean_abs_shap": 0.060036658642370316
+      "mean_abs_shap": 0.10664090335830614
+    },
+    {
+      "feature": "total_prior_visits",
+      "mean_abs_shap": 0.09719209104104345
+    },
+    {
+      "feature": "diabetesMed_No",
+      "mean_abs_shap": 0.06477680011798286
     },
     {
       "feature": "insulin_No",
-      "mean_abs_shap": 0.05540146971375996
+      "mean_abs_shap": 0.05853591418903046
     },
     {
-      "feature": "prior_encounters",
-      "mean_abs_shap": 0.05507963883637967
+      "feature": "number_diagnoses",
+      "mean_abs_shap": 0.05585439086078431
+    },
+    {
+      "feature": "num_medications",
+      "mean_abs_shap": 0.05468281219481443
+    },
+    {
+      "feature": "change_Ch",
+      "mean_abs_shap": 0.05120562459498784
     }
   ],
   "key_features": [
     "discharge_disposition_id",
     "medical_specialty",
-    "payer_code",
+    "number_inpatient",
     "diag_2_group",
-    "number_inpatient"
+    "age"
   ],
-  "mlflow_run_id": "7ec594459bab42bb8da96935d4ae1eb3",
-  "registered_version": 1
+  "mlflow_run_id": "0cc140f8f79849a894aec55b14520af3",
+  "registered_version": 3
 }

@@ -13,19 +13,19 @@
   },
   "splits": {
     "train": {
-      "rows": 69510,
-      "patients": 48992,
-      "positive_rate": 0.1145
+      "rows": 69540,
+      "patients": 51355,
+      "positive_rate": 0.1157
     },
     "val": {
-      "rows": 14982,
-      "patients": 10499,
-      "positive_rate": 0.1139
+      "rows": 14902,
+      "patients": 11819,
+      "positive_rate": 0.1115
     },
     "test": {
-      "rows": 14851,
-      "patients": 10499,
-      "positive_rate": 0.1111
+      "rows": 14901,
+      "patients": 12223,
+      "positive_rate": 0.1078
     }
   }
 }

@@ -16,32 +16,33 @@ stages:
       size: 19159383
     - path: src/ml_pipeline/data.py
       hash: md5
-      md5: 270fd1908e4ac0755cafd4d1f851284f
-      size: 9417
+      md5: 5149232680f4da172decbc37b3ba4fce
+      size: 10796
     - path: src/ml_pipeline/validation.py
       hash: md5
-      md5: cfc570bfe3848b998865a89f3ceb4d7c
-      size: 3104
+      md5: 90366992b9134fe7bb23c3aab7f706a9
+      size: 3159
     params:
       params.yaml:
         random_seed: 42
+        split_strategy: time
     outs:
     - path: data/processed
       hash: md5
-      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
-      size: 1926202
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
       nfiles: 3
     - path: reports/data_profile.json
       hash: md5
-      md5: fdadcac96dc76194781a56013fd19996
+      md5: 3f153ba83e7a87ad653649cc9698991d
       size: 577
   train_baseline:
     cmd: python -m ml_pipeline.train --model baseline
     deps:
     - path: data/processed
       hash: md5
-      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
-      size: 1926202
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
       nfiles: 3
     - path: src/ml_pipeline/evaluate.py
       hash: md5
@@ -61,15 +62,15 @@ stages:
     outs:
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 08500e40a446fb55b13477617b2c7c8d
-      size: 1965
+      md5: c4bb32a485d87e093815ea044650dfaa
+      size: 1948
   train_xgboost:
     cmd: python -m ml_pipeline.train --model xgboost
     deps:
     - path: data/processed
       hash: md5
-      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
-      size: 1926202
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
       nfiles: 3
     - path: src/ml_pipeline/evaluate.py
       hash: md5
@@ -90,19 +91,19 @@ stages:
     outs:
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 07d256095e8e36742b19de9b79dcdec8
-      size: 2360
+      md5: 921a507dd2afedab2cf562be4dbcb2b1
+      size: 2380
   gate:
     cmd: python -m ml_pipeline.promote
     deps:
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 08500e40a446fb55b13477617b2c7c8d
-      size: 1965
+      md5: c4bb32a485d87e093815ea044650dfaa
+      size: 1948
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 07d256095e8e36742b19de9b79dcdec8
-      size: 2360
+      md5: 921a507dd2afedab2cf562be4dbcb2b1
+      size: 2380
     - path: src/ml_pipeline/promote.py
       hash: md5
       md5: a8ab854a6723985f5e5c77bc5d8491a6
@@ -113,24 +114,24 @@ stages:
     outs:
     - path: reports/gate.json
       hash: md5
-      md5: 963e70d6053e1a000714a853bf4ea90b
-      size: 478
+      md5: ec1c7204254be3721bb5afbbf0841c05
+      size: 430
   audit:
     cmd: python -m ml_pipeline.audit
     deps:
     - path: data/processed
       hash: md5
-      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
-      size: 1926202
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
       nfiles: 3
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 08500e40a446fb55b13477617b2c7c8d
-      size: 1965
+      md5: c4bb32a485d87e093815ea044650dfaa
+      size: 1948
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 07d256095e8e36742b19de9b79dcdec8
-      size: 2360
+      md5: 921a507dd2afedab2cf562be4dbcb2b1
+      size: 2380
     - path: src/ml_pipeline/audit.py
       hash: md5
       md5: ccb9f08008f6a106663963ce8120fbb1
@@ -141,19 +142,19 @@ stages:
     outs:
     - path: reports/audit.json
       hash: md5
-      md5: d06864d6ad35fd95664776f3db520f99
-      size: 23034
+      md5: ad82b486d7eb04e55a480293710b17e5
+      size: 23240
     - path: reports/audit.md
       hash: md5
-      md5: 043af903ea41ac2145a217326c00cfe7
-      size: 3293
+      md5: 0570ba15754f815da75f6c0c0bba4cc2
+      size: 3362
   age_gap:
     cmd: python -m ml_pipeline.age_gap
     deps:
     - path: data/processed
       hash: md5
-      md5: b97eacf2f7d959e9f734fb772fa07e26.dir
-      size: 1926202
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
       nfiles: 3
     - path: data/raw/diabetic_data.csv
       hash: md5
@@ -161,25 +162,67 @@ stages:
       size: 19159383
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 08500e40a446fb55b13477617b2c7c8d
-      size: 1965
+      md5: c4bb32a485d87e093815ea044650dfaa
+      size: 1948
     - path: reports/xgboost_metrics.json
       hash: md5
-      md5: 07d256095e8e36742b19de9b79dcdec8
-      size: 2360
+      md5: 921a507dd2afedab2cf562be4dbcb2b1
+      size: 2380
     - path: src/ml_pipeline/age_gap.py
       hash: md5
-      md5: 61a94370e336f247eb4ddff5732cfbd6
-      size: 18589
+      md5: 61799b56ee2409b0542a416600ab62f9
+      size: 18623
     params:
       params.yaml:
         random_seed: 42
     outs:
     - path: reports/age_gap.json
       hash: md5
-      md5: 60273d1e8a1a7956b9ba644ed755ce1e
-      size: 6847
+      md5: d7a513ba3626344dc7ca935cf9d10654
+      size: 6806
     - path: reports/age_gap.md
       hash: md5
-      md5: ec491b66638e0e87bf35b9c310c53ca7
+      md5: 807aea796a21b2d6821db76dc761837f
       size: 2631
+  robustness:
+    cmd: python -m ml_pipeline.robustness --seeds 5
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: bae0f46ea290243cfd1890d8a27e6024.dir
+      size: 2633829
+      nfiles: 3
+    - path: data/raw/diabetic_data.csv
+      hash: md5
+      md5: 502f0cc004e4cf71536ec2e61596e42f
+      size: 19159383
+    - path: src/ml_pipeline/features.py
+      hash: md5
+      md5: 0da6b6d2b2aa86b5556f72f0d2272f77
+      size: 1001
+    - path: src/ml_pipeline/robustness.py
+      hash: md5
+      md5: 6e46192fbf70b87b11d0539389d95055
+      size: 17004
+    - path: src/ml_pipeline/train.py
+      hash: md5
+      md5: 6bc0bc5379ee6a94ad770cc004768111
+      size: 12413
+    params:
+      params.yaml:
+        min_auc_lift: 0.01
+        optuna_n_trials: 50
+        random_seed: 42
+    outs:
+    - path: reports/robustness.json
+      hash: md5
+      md5: e2e3f741c77b14ec757818052dd2f238
+      size: 6685
+    - path: reports/robustness.md
+      hash: md5
+      md5: aa11603ec7bcbbf04812e59135cd253e
+      size: 2485
+    - path: reports/robustness_xgb_seeds.json
+      hash: md5
+      md5: 5b478f03fc5dee37bf3749595241bfcd
+      size: 3124

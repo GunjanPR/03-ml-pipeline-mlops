@@ -1,112 +1,112 @@
 {
-  "42:50": {
+  "time:42:50": {
     "seed": 42,
-    "test_auc": 0.6757740575208949,
+    "test_auc": 0.6765608592017267,
     "minus_default": {
-      "lift": 0.007934017854478448,
-      "ci_low": 0.0006901892268571991,
-      "ci_high": 0.014820426876920624
+      "lift": 0.03133085945168623,
+      "ci_low": 0.02348874839080921,
+      "ci_high": 0.03891007811232609
     },
     "params": {
-      "max_depth": 5,
-      "learning_rate": 0.0647728485473119,
-      "min_child_weight": 1.9097459332412938,
-      "subsample": 0.7892391635959216,
-      "colsample_bytree": 0.896342800102043,
-      "reg_lambda": 0.0026213909907172473,
-      "reg_alpha": 0.0034680907142825407,
-      "gamma": 1.6169110799681503,
-      "n_estimators": 231,
+      "max_depth": 7,
+      "learning_rate": 0.028384184254339515,
+      "min_child_weight": 2.310644198135561,
+      "subsample": 0.9251285882207282,
+      "colsample_bytree": 0.7645507798532388,
+      "reg_lambda": 0.049246687940884444,
+      "reg_alpha": 0.002872927732535719,
+      "gamma": 0.3437848527484632,
+      "n_estimators": 162,
       "optuna_trials": 50
     },
-    "seconds": 125.4
+    "seconds": 82.3
   },
-  "43:50": {
+  "time:43:50": {
     "seed": 43,
-    "test_auc": 0.6744314824634499,
+    "test_auc": 0.6860302063458078,
     "minus_default": {
-      "lift": 0.006591442797033387,
-      "ci_low": -0.0006813919660172334,
-      "ci_high": 0.013945246922121056
-    },
-    "params": {
-      "max_depth": 7,
-      "learning_rate": 0.0681530660724505,
-      "min_child_weight": 2.364334244456918,
-      "subsample": 0.836616001461695,
-      "colsample_bytree": 0.8447754111740423,
-      "reg_lambda": 0.009288065561059964,
-      "reg_alpha": 0.6448451690866908,
-      "gamma": 2.4861929491100048,
-      "n_estimators": 195,
-      "optuna_trials": 50
-    },
-    "seconds": 109.6
-  },
-  "44:50": {
-    "seed": 44,
-    "test_auc": 0.6768607979652598,
-    "minus_default": {
-      "lift": 0.009020758298843301,
-      "ci_low": 0.002191702074563706,
-      "ci_high": 0.01616406162301501
-    },
-    "params": {
-      "max_depth": 7,
-      "learning_rate": 0.023222302009889353,
-      "min_child_weight": 1.0023622844549722,
-      "subsample": 0.6299774816253069,
-      "colsample_bytree": 0.444166799888895,
-      "reg_lambda": 0.13359080795642658,
-      "reg_alpha": 0.004015125491714263,
-      "gamma": 0.45123489500998737,
-      "n_estimators": 362,
-      "optuna_trials": 50
-    },
-    "seconds": 183.3
-  },
-  "45:50": {
-    "seed": 45,
-    "test_auc": 0.6772027371663764,
-    "minus_default": {
-      "lift": 0.009362697499959882,
-      "ci_low": 0.0021246266583862723,
-      "ci_high": 0.01656490296171223
-    },
-    "params": {
-      "max_depth": 6,
-      "learning_rate": 0.0337970907948476,
-      "min_child_weight": 1.49041931049299,
-      "subsample": 0.7411740993519089,
-      "colsample_bytree": 0.9874754720001119,
-      "reg_lambda": 3.044843148636656,
-      "reg_alpha": 0.0015312596239949454,
-      "gamma": 0.01898751882125116,
-      "n_estimators": 474,
-      "optuna_trials": 50
-    },
-    "seconds": 170.0
-  },
-  "46:50": {
-    "seed": 46,
-    "test_auc": 0.6759925671379349,
-    "minus_default": {
-      "lift": 0.0081525274715184,
-      "ci_low": 0.000999016519901247,
-      "ci_high": 0.015669757644930917
+      "lift": 0.04080020659576733,
+      "ci_low": 0.03227067670945697,
+      "ci_high": 0.04955452432499161
     },
     "params": {
       "max_depth": 8,
-      "learning_rate": 0.02487891128275749,
-      "min_child_weight": 2.1218043647041256,
-      "subsample": 0.9936876467510516,
-      "colsample_bytree": 0.36983764003377545,
-      "reg_lambda": 0.4509871429901265,
-      "reg_alpha": 0.005004616748004007,
-      "gamma": 1.470688056517269,
-      "n_estimators": 323,
+      "learning_rate": 0.039454897702614185,
+      "min_child_weight": 4.382543723238419,
+      "subsample": 0.8577634790099548,
+      "colsample_bytree": 0.3314303531707372,
+      "reg_lambda": 0.006238246715810248,
+      "reg_alpha": 0.011760138722215919,
+      "gamma": 2.854129946993746,
+      "n_estimators": 43,
       "optuna_trials": 50
     },
-    "seconds": 160.1
+    "seconds": 63.2
+  },
+  "time:44:50": {
+    "seed": 44,
+    "test_auc": 0.6812784475247406,
+    "minus_default": {
+      "lift": 0.036048447774700176,
+      "ci_low": 0.028103681813782238,
+      "ci_high": 0.04417991913936424
+    },
+    "params": {
+      "max_depth": 8,
+      "learning_rate": 0.031202179195734196,
+      "min_child_weight": 1.6783122812474873,
+      "subsample": 0.6586767013346597,
+      "colsample_bytree": 0.5151957911779357,
+      "reg_lambda": 0.07755186516258616,
+      "reg_alpha": 0.021085580561795984,
+      "gamma": 2.8403768646062346,
+      "n_estimators": 134,
+      "optuna_trials": 50
+    },
+    "seconds": 72.4
+  },
+  "time:45:50": {
+    "seed": 45,
+    "test_auc": 0.6797575326990603,
+    "minus_default": {
+      "lift": 0.03452753294901978,
+      "ci_low": 0.02669919927107751,
+      "ci_high": 0.042015278082094806
+    },
+    "params": {
+      "max_depth": 8,
+      "learning_rate": 0.023192417250673208,
+      "min_child_weight": 1.08775935970072,
+      "subsample": 0.8644443560180032,
+      "colsample_bytree": 0.47398039908277345,
+      "reg_lambda": 2.6833675572459583,
+      "reg_alpha": 1.4017837808712426,
+      "gamma": 0.8009911124928893,
+      "n_estimators": 293,
+      "optuna_trials": 50
+    },
+    "seconds": 103.0
+  },
+  "time:46:50": {
+    "seed": 46,
+    "test_auc": 0.6808993188275043,
+    "minus_default": {
+      "lift": 0.035669319077463846,
+      "ci_low": 0.027575353341436067,
+      "ci_high": 0.04323272075818538
+    },
+    "params": {
+      "max_depth": 8,
+      "learning_rate": 0.05534731142230387,
+      "min_child_weight": 1.274111523749882,
+      "subsample": 0.8047969413225701,
+      "colsample_bytree": 0.37614440621506395,
+      "reg_lambda": 0.9906298125234239,
+      "reg_alpha": 0.0017510837601508295,
+      "gamma": 4.035731498751646,
+      "n_estimators": 68,
+      "optuna_trials": 50
+    },
+    "seconds": 57.5
   }
 }

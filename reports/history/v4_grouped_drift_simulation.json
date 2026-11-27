@@ -1,0 +1,114 @@
+{
+  "batch_size": 1000,
+  "drift_threshold": 0.3,
+  "summary": [
+    {
+      "scenario": "no_shift",
+      "batches": 20,
+      "alarm_rate": 0.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 0.0,
+      "mean_drift_share": 0.0,
+      "prediction_drift_rate": 0.0,
+      "roc_auc": 0.676506016135688,
+      "positive_rate": 0.11315,
+      "mean_prediction": 0.11537578365057102,
+      "most_flagged": ""
+    },
+    {
+      "scenario": "older_sicker",
+      "batches": 20,
+      "alarm_rate": 1.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 1.0,
+      "mean_drift_share": 0.21020408163265306,
+      "prediction_drift_rate": 1.0,
+      "roc_auc": 0.6459097467924376,
+      "positive_rate": 0.14265,
+      "mean_prediction": 0.1452829511958347,
+      "most_flagged": "age, number_diagnoses, number_inpatient"
+    },
+    {
+      "scenario": "emergency_intake",
+      "batches": 20,
+      "alarm_rate": 1.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 1.0,
+      "mean_drift_share": 0.1357142857142857,
+      "prediction_drift_rate": 0.1,
+      "roc_auc": 0.6689994275639675,
+      "positive_rate": 0.11710000000000001,
+      "mean_prediction": 0.11939974981548969,
+      "most_flagged": "admission_source_id, admission_type_id, medical_specialty"
+    },
+    {
+      "scenario": "icd10_migration",
+      "batches": 20,
+      "alarm_rate": 1.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 1.0,
+      "mean_drift_share": 0.061224489795918366,
+      "prediction_drift_rate": 0.3,
+      "roc_auc": 0.6646563947678079,
+      "positive_rate": 0.11334999999999999,
+      "mean_prediction": 0.1097925242713335,
+      "most_flagged": "diag_1_group, diag_2_group, diag_3_group"
+    },
+    {
+      "scenario": "lab_panel_change",
+      "batches": 20,
+      "alarm_rate": 0.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 0.0,
+      "mean_drift_share": 0.022448979591836733,
+      "prediction_drift_rate": 0.0,
+      "roc_auc": 0.66481039519302,
+      "positive_rate": 0.11200000000000002,
+      "mean_prediction": 0.11587245618635467,
+      "most_flagged": "num_lab_procedures, time_in_hospital, total_prior_visits"
+    },
+    {
+      "scenario": "discharge_code_remap",
+      "batches": 20,
+      "alarm_rate": 1.0,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 1.0,
+      "mean_drift_share": 0.02142857142857143,
+      "prediction_drift_rate": 1.0,
+      "roc_auc": 0.6069259744183657,
+      "positive_rate": 0.11265,
+      "mean_prediction": 0.15155809642307116,
+      "most_flagged": "discharge_disposition_id, medical_specialty"
+    }
+  ],
+  "retrain_demo": [
+    {
+      "shift": "discharge_code_remap",
+      "model_kind": "baseline",
+      "stale_auc_before_shift": 0.668192079112464,
+      "stale_auc_after_shift": 0.6068381412794714,
+      "retrained_auc_after_shift": 0.6679725365158287,
+      "auc_lift": 0.06113439523635722,
+      "auc_lift_ci_low": 0.04786423128379256,
+      "auc_lift_ci_high": 0.07437133080731816,
+      "gate": "promote"
+    },
+    {
+      "shift": "icd10_migration",
+      "model_kind": "baseline",
+      "stale_auc_before_shift": 0.668192079112464,
+      "stale_auc_after_shift": 0.6662131197590633,
+      "retrained_auc_after_shift": 0.6675367109470587,
+      "auc_lift": 0.0013235911879954099,
+      "auc_lift_ci_low": -0.00047378496359568034,
+      "auc_lift_ci_high": 0.003036109620266155,
+      "gate": "keep champion"
+    }
+  ],
+  "end_to_end": {
+    "scenario": "older_sicker",
+    "rows": 1000,
+    "drifted": true,
+    "drift_share": 0.2653061224489796
+  }
+}

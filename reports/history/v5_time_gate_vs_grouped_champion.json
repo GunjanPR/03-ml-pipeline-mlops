@@ -1,0 +1,18 @@
+{
+  "challenger_version": 4,
+  "reference_version": 1,
+  "reference_kind": "baseline",
+  "challenger_auc": 0.6765608592017267,
+  "reference_auc": 0.6751377983845126,
+  "auc_lift": 0.0014230608172141057,
+  "auc_lift_ci_low": -0.0053829095328867095,
+  "auc_lift_ci_high": 0.008038684284401033,
+  "challenger_brier": 0.09149937331676483,
+  "reference_brier": 0.09194649741613242,
+  "min_auc_lift": 0.01,
+  "passed": false,
+  "reasons": [
+    "AUC lift +0.0014 < required +0.0100",
+    "lift CI lower bound -0.0054 is not above 0"
+  ]
+}
