@@ -1,0 +1,25 @@
+{
+  "label": "host-xtrrage",
+  "url": "http://127.0.0.1:8020",
+  "machine": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD / Windows",
+  "single": {
+    "calls": 1000,
+    "rows_per_call": 1,
+    "p50_ms": 1.0113999999248335,
+    "p95_ms": 1.211214999943877,
+    "p99_ms": 1.3429649999761748,
+    "mean_ms": 1.0558640000010655,
+    "rows_per_second": 947.0916708960538,
+    "server_mean_ms": 0.17569509999748334
+  },
+  "batched": {
+    "calls": 50,
+    "rows_per_call": 100,
+    "p50_ms": 12.990999999942687,
+    "p95_ms": 14.815449999912286,
+    "p99_ms": 38.191110000129726,
+    "mean_ms": 13.948086000009425,
+    "rows_per_second": 7169.442459698946,
+    "server_mean_ms": 11.258243999977822
+  }
+}

@@ -16,7 +16,7 @@ github.com/GunjanPR/03-ml-pipeline-mlops
 2. Designed a champion/challenger promotion gate (paired-bootstrap ROC-AUC lift with a 95%
    CI and a minimum lift, plus a calibration check). It blocked a 50-trial tuned XGBoost
    whose lift over logistic regression (+0.0087, CI +0.001 to +0.016, 14,851 test
-   encounters) was real but below the +0.01 bar, which kept a 60× cheaper, interpretable
+   encounters) was real but below the +0.01 bar, which kept a 50-60× cheaper, interpretable
    model in production. Re-running the search on another OS moved the tuned model's AUC by
    0.005, which is why the bar exists. *(reports/gate.json, README "Reproducibility")*
 
@@ -49,7 +49,8 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    run the drift CronJob on every push. *(.github/workflows/ci.yml)*
 
 7. Cut server-side `/predict` latency for single-record requests by 30× (about 21 ms →
-   0.70 ms; host end-to-end p50 3.2 ms over 1,000 calls) against the scikit-learn pipeline.
+   0.70 ms; host end-to-end p50 3.2 ms over 1,000 calls on a laptop, 1.0 ms on a Ryzen 7
+   9800X3D desktop) against the scikit-learn pipeline.
    The fix was a fast encoder built from the fitted preprocessor that only switches on
    after it reproduces the sklearn probabilities to 1e-9, plus asynchronous inference
    logging. *(reports/api_latency.json, README "Serving")*

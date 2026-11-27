@@ -1,0 +1,90 @@
+{
+  "model": "xgboost",
+  "n_train": 69510,
+  "params": {
+    "max_depth": 5,
+    "learning_rate": 0.0647728485473119,
+    "min_child_weight": 1.9097459332412938,
+    "subsample": 0.7892391635959216,
+    "colsample_bytree": 0.896342800102043,
+    "reg_lambda": 0.0026213909907172473,
+    "reg_alpha": 0.0034680907142825407,
+    "gamma": 1.6169110799681503,
+    "n_estimators": 231,
+    "optuna_trials": 50
+  },
+  "excluded_features": [],
+  "val": {
+    "roc_auc": 0.6768987121821415,
+    "pr_auc": 0.2330533350503626,
+    "f1": 0.28754813863928114,
+    "brier": 0.09578555077314377,
+    "threshold": 0.15720659494400024,
+    "positive_rate": 0.11393672406888265,
+    "n": 14982
+  },
+  "test": {
+    "roc_auc": 0.6757740575208949,
+    "pr_auc": 0.23746388026931586,
+    "f1": 0.2874617737003058,
+    "brier": 0.09338507801294327,
+    "threshold": 0.15720659494400024,
+    "positive_rate": 0.11110362938522658,
+    "n": 14851,
+    "roc_auc_ci_low": 0.6625185438502647,
+    "roc_auc_ci_high": 0.6897169791370278
+  },
+  "fit_seconds": 86.48294959999998,
+  "predict_ms_per_1k_rows": 7.1561847687124835,
+  "top_features": [
+    {
+      "feature": "discharge_disposition_id_28",
+      "mean_abs_shap": 0.7621616721153259
+    },
+    {
+      "feature": "medical_specialty_Otolaryngology",
+      "mean_abs_shap": 0.6642860174179077
+    },
+    {
+      "feature": "payer_code_WC",
+      "mean_abs_shap": 0.5155772566795349
+    },
+    {
+      "feature": "discharge_disposition_id_5",
+      "mean_abs_shap": 0.43790677189826965
+    },
+    {
+      "feature": "medical_specialty_Neurology",
+      "mean_abs_shap": 0.42093196511268616
+    },
+    {
+      "feature": "diag_2_group_neoplasms",
+      "mean_abs_shap": 0.4153957664966583
+    },
+    {
+      "feature": "discharge_disposition_id_22",
+      "mean_abs_shap": 0.40081456303596497
+    },
+    {
+      "feature": "medical_specialty_Pediatrics-Endocrinology",
+      "mean_abs_shap": 0.39107415080070496
+    },
+    {
+      "feature": "discharge_disposition_id_infrequent_sklearn",
+      "mean_abs_shap": 0.35299253463745117
+    },
+    {
+      "feature": "payer_code_missing",
+      "mean_abs_shap": 0.32441508769989014
+    }
+  ],
+  "key_features": [
+    "medical_specialty",
+    "discharge_disposition_id",
+    "payer_code",
+    "diag_2_group",
+    "diag_3_group"
+  ],
+  "mlflow_run_id": "379fc94311ad4d19b59ac6a65150cb5b",
+  "registered_version": 2
+}

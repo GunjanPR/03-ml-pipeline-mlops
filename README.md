@@ -24,7 +24,7 @@ reproducible with one command.
   from AUC 0.668 to 0.607. A model retrained on post-shift data recovered 0.668, and the
   gate promoted it (lift +0.061, CI [+0.048, +0.074]).
 * **Fast serving.** A verified fast encoding path cut server-side `/predict` time for one
-  record by 30× (about 21 ms → 0.70 ms). End-to-end p50 is 3.2 ms on the host.
+  record by 30× (about 21 ms → 0.70 ms). End-to-end p50 is 3.2 ms on the host (1.0 ms on a Ryzen 7 9800X3D desktop).
 * **Reproducible, with the limits measured.** `dvc repro` on Linux rebuilt the pipeline
   from the raw download with bit-identical processed data and the baseline within 0.0003
   AUC of the Windows run. The 50-trial XGBoost search did not reproduce (0.672 on Windows,
@@ -191,10 +191,16 @@ Metrics are from the committed `dvc repro` (`reports/*_metrics.json`, Linux, 202
 Fit and predict times are from the Windows laptop run (`reports/history/v2_windows_*`),
 because the Linux run shared four vCPUs with another job.
 
+Re-run on a desktop (AMD Ryzen 7 9800X3D, 16 threads, Windows 11, 2026-11-27;
+`reports/history/v3_xtrrage_*`): logistic regression fit **1.75 s**, predict **4.3 ms / 1k rows**;
+XGBoost with 50 Optuna trials fit **86 s**, predict **7.2 ms / 1k rows**. Test ROC-AUC was
+0.668 and 0.676, so the quality numbers and the gate decision are unchanged.
+
 **Gate decision: blocked.** The AUC lift is +0.0087 with paired-bootstrap 95% CI
 [+0.0014, +0.0160]. XGBoost is measurably better, but the lift is below the +0.01 the gate
 requires before it swaps a production model. The champion stays the logistic regression,
-which is about 60x cheaper to train and fully interpretable. That is the gate working as
+which is about 50-60x cheaper to train (60x on the laptop, 49x on the desktop) and fully
+interpretable. That is the gate working as
 designed: a statistically real but small gain is not enough on its own.
 
 What did not help (measured, kept for honesty):
@@ -358,6 +364,11 @@ single-record calls, then 50 calls of 100 records, all from the test split
 |---|---|---|---|---|
 | uvicorn on the host | **3.2 / 4.1 ms** | **0.56 ms** | 26 ms | 3,681 rows/s |
 | Docker container (Docker Desktop on Windows) | 47.5 / 49.2 ms | 0.70 ms | 25 ms | 2,738 rows/s |
+| uvicorn on the host, Ryzen 7 9800X3D desktop (2026-11-27) | **1.0 / 1.2 ms** | **0.18 ms** | 13 ms | 7,169 rows/s |
+
+The first two rows are from the i5-13420H laptop. The desktop row is the same benchmark
+against the same exported bundle (`reports/history/api_latency_xtrrage_host.json`); the
+Docker setup was not re-run there.
 
 On Windows, Docker Desktop's port forwarding adds about 45 ms to every call. The server's
 own histogram shows the handler takes under 1 ms, so the rest is the forwarding layer.

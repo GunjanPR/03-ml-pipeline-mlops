@@ -1,0 +1,81 @@
+{
+  "model": "baseline",
+  "n_train": 69510,
+  "params": {
+    "C": 1.0
+  },
+  "excluded_features": [],
+  "val": {
+    "roc_auc": 0.6486421591828044,
+    "pr_auc": 0.21193823045808197,
+    "f1": 0.26653426017874876,
+    "brier": 0.09720045953592736,
+    "threshold": 0.13714373626113716,
+    "positive_rate": 0.11393672406888265,
+    "n": 14982
+  },
+  "test": {
+    "roc_auc": 0.6678400396664165,
+    "pr_auc": 0.2201716175469699,
+    "f1": 0.2738048202291584,
+    "brier": 0.09447196337223172,
+    "threshold": 0.13714373626113716,
+    "positive_rate": 0.11110362938522658,
+    "n": 14851,
+    "roc_auc_ci_low": 0.6534382129560699,
+    "roc_auc_ci_high": 0.680822844405108
+  },
+  "fit_seconds": 1.7539507000001322,
+  "predict_ms_per_1k_rows": 4.302760756843752,
+  "top_features": [
+    {
+      "feature": "discharge_disposition_id_1",
+      "mean_abs_shap": 0.2285287839889032
+    },
+    {
+      "feature": "number_inpatient",
+      "mean_abs_shap": 0.15463744208912514
+    },
+    {
+      "feature": "payer_code_missing",
+      "mean_abs_shap": 0.1391760933962619
+    },
+    {
+      "feature": "medical_specialty_missing",
+      "mean_abs_shap": 0.10420924601499558
+    },
+    {
+      "feature": "number_diagnoses",
+      "mean_abs_shap": 0.06311038877366591
+    },
+    {
+      "feature": "diabetesMed_No",
+      "mean_abs_shap": 0.061609297167510124
+    },
+    {
+      "feature": "total_prior_visits",
+      "mean_abs_shap": 0.06025618106709182
+    },
+    {
+      "feature": "discharge_disposition_id_6",
+      "mean_abs_shap": 0.058922845508275874
+    },
+    {
+      "feature": "prior_encounters",
+      "mean_abs_shap": 0.05653557421838905
+    },
+    {
+      "feature": "insulin_No",
+      "mean_abs_shap": 0.05486499258903051
+    }
+  ],
+  "key_features": [
+    "discharge_disposition_id",
+    "medical_specialty",
+    "payer_code",
+    "diag_2_group",
+    "number_inpatient"
+  ],
+  "mlflow_run_id": "3249d311757444c184cc9de11b5a717d",
+  "registered_version": 1
+}
