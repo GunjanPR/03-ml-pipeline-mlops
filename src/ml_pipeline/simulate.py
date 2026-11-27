@@ -3,8 +3,16 @@
     python -m ml_pipeline.simulate                   # all scenarios, 10 batches each
     python -m ml_pipeline.simulate --batches 20 --batch-size 1000
 
-Batches are drawn from the held-out **test** split (patients never seen in training), so
-each batch has labels and the champion's ROC-AUC can be measured on it. Scenarios:
+Where batches come from depends on the split (`split_strategy`):
+
+* `time` (default): the val period is split in two at random. One half is the monitor's
+  reference, the other half is the pool the scenarios draw from, so the only shift in a
+  batch is the simulated one. A separate `test_period` row scores random batches from the
+  later test period against the same reference: real drift over time, with no simulation.
+* `grouped`: the reference is the training sample and the pool is the test split (patients
+  never seen in training); every split covers the same period.
+
+Every batch has labels, so the champion's ROC-AUC can be measured on it. Scenarios:
 
 * `no_shift` - random batches. Any alarm here is a false alarm.
 * `older_sicker` - case mix shifts to patients aged 70+ with prior inpatient stays.
@@ -37,7 +45,7 @@ from sklearn.metrics import roc_auc_score
 
 from ml_pipeline.config import Settings, get_settings
 from ml_pipeline.data import FEATURES, TARGET, load_splits
-from ml_pipeline.monitor import PREDICTION, detect_drift, reference_frame
+from ml_pipeline.monitor import PREDICTION, detect_drift, reference_frame, reference_split
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +116,21 @@ SCENARIOS: dict[str, Scenario] = {
     "lab_panel_change": lab_panel_change,
     "discharge_code_remap": discharge_code_remap,
 }
+REAL_PERIOD = "test_period"  # time split only: unshifted batches from the later test period
+
+
+def reference_and_pool(settings: Settings, model) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(reference with predictions, pool of labelled rows the scenarios sample from)."""
+    splits = load_splits(settings)
+    if reference_split(settings) == "train":
+        return reference_frame(settings, model), splits["test"]
+    period = splits[reference_split(settings)]
+    order = np.random.default_rng(settings.random_seed).permutation(len(period))
+    half = len(period) // 2
+    reference = period.iloc[order[:half]][FEATURES].reset_index(drop=True)
+    reference[PREDICTION] = model.predict_proba(reference[FEATURES])[:, 1]
+    return reference, period.iloc[order[half:]].reset_index(drop=True)
+
 
 # Shifts applied to whole splits for the retraining demo.
 SPLIT_SHIFTS: dict[str, Callable[[pd.DataFrame, np.random.Generator], pd.DataFrame]] = {
@@ -125,17 +148,19 @@ def simulate(
     settings = settings or get_settings()
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     model = mlflow.sklearn.load_model(settings.resolved_model_uri)
-    reference = reference_frame(settings, model)
+    reference, pool = reference_and_pool(settings, model)
     from ml_pipeline.monitor import champion_key_features
 
     keys = champion_key_features(settings)
-    log.info("key features: %s", keys)
-    pool = load_splits(settings)["test"]
+    log.info("key features: %s; reference %d rows, pool %d", keys, len(reference), len(pool))
+    plan = [(name, scenario, pool) for name, scenario in SCENARIOS.items()]
+    if reference_split(settings) != "train":
+        plan.append((REAL_PERIOD, no_shift, load_splits(settings)["test"]))
     rows = []
-    for name, scenario in SCENARIOS.items():
+    for name, scenario, source in plan:
         for b in range(batches):
             rng = np.random.default_rng([settings.random_seed, b, len(rows)])
-            batch = scenario(pool, rng, batch_size)
+            batch = scenario(source, rng, batch_size)
             proba = model.predict_proba(batch[FEATURES])[:, 1]
             current = batch[FEATURES].assign(**{PREDICTION: proba})
             result = detect_drift(reference, current, settings.drift_threshold, key_features=keys)
