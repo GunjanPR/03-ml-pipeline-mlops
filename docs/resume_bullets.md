@@ -14,53 +14,55 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    *(reports/\*.json, dvc.lock)*
 
 2. Designed a champion/challenger promotion gate (paired-bootstrap ROC-AUC lift with a 95%
-   CI and a minimum lift, plus a calibration check). It blocked a 50-trial tuned XGBoost
-   whose lift over logistic regression (+0.0087, CI +0.001 to +0.016, 14,851 test
-   encounters) was real but below the +0.01 bar, which kept a 50-60× cheaper, interpretable
-   model in production. Re-running the search on another OS moved the tuned model's AUC by
-   0.005, which is why the bar exists. *(reports/gate.json, README "Reproducibility")*
+   CI and a minimum lift, plus a calibration check) and evaluated it on a time-ordered split
+   (train on the earliest 70% of encounters, test on the latest 15%). It promoted a 50-trial
+   tuned XGBoost over logistic regression with lift +0.031 (CI +0.024 to +0.039, 14,901 test
+   encounters), stable across 5 Optuna seeds (+0.031 to +0.041). *(reports/history/v5_time_gate.json, reports/robustness.md)*
 
-2b. Stress-tested the model comparison: both models beat the LACE clinical readmission index
-   (AUC 0.572) by about +0.10; tuning the baseline changed nothing (−0.001); the blocked
-   decision held across 5 Optuna seeds (lift +0.007 to +0.009); and a time-ordered split
-   showed the random split flatters the baseline (XGBoost lift +0.029, CI +0.022 to +0.036).
-   *(reports/robustness.md)*
+2b. Found that a random patient-grouped split reversed the decision: there the lift was only
+   +0.008 and the gate blocked XGBoost, because the random split flattered the linear baseline
+   (0.668 vs 0.645 on later data). Switched the gate to the time-ordered split and added a
+   guard so it never compares models trained on different splits. Both models beat the LACE
+   clinical readmission index (0.590) by +0.055 to +0.087 AUC. *(README "Robustness")*
 
 3. Built a pre-deployment model audit (calibration ECE, top-k capture, subgroup AUC and
-   sensitivity with bootstrap CIs) as a DVC stage. Both models are calibrated (ECE ≤ 0.008),
-   the top 10% of scores catches 2.4× the random share of readmissions, and the largest gap
-   is by age (AUC 0.745 under 40 vs 0.619 over 80), not race; a race-blind ablation cost
-   0.0002 AUC. *(reports/audit.md, reports/audit_race_ablation.md)*
+   sensitivity with bootstrap CIs) as a DVC stage. The top 10% of XGBoost's scores catches
+   2.5× the random share of readmissions; the audit also caught an 11% over-prediction caused
+   by the readmission rate falling over time. The largest gap is by age (AUC 0.790 under 40 vs
+   0.652 over 80), not race; a race-blind ablation changed AUC by 0.0002.
+   *(reports/audit.md, reports/audit_race_ablation.md)*
 
-3b. Traced the age gap (AUC 0.745 under 40 vs 0.619 over 80) to the data, not the model:
-   prior inpatient stays predict readmission with AUC 0.72 under 40 but 0.57 over 80, and
-   over-80s are readmitted at 10.5% with no prior stay. Five model variants (comorbidity
-   flags from full ICD-9 codes, per-age-band models, tuned XGBoost) left the gap at
-   0.115-0.160, and per-band thresholds did not significantly equalise sensitivity
-   (paired-bootstrap CI -0.064 to +0.146), so neither was shipped. *(reports/age_gap.md)*
+3b. Traced the age gap to the data, not the model: prior inpatient stays predict readmission
+   with AUC 0.71 under 40 but 0.57 over 80, and over-80s are readmitted at 10.7% with no prior
+   stay. Five model variants (comorbidity flags from full ICD-9 codes, per-age-band models,
+   tuned XGBoost) left the gap at 0.15-0.17, and per-band thresholds did not significantly
+   equalise sensitivity (paired-bootstrap CI -0.080 to +0.168), so neither was shipped.
+   *(reports/age_gap.md)*
 
 4. Improved drift detection from 0 of 5 to 4 of 5 simulated data shifts, each caught within
    one 1,000-encounter batch (20/20 batches per shift), with 0/20 false alarms on unshifted
    data. The fix was to alarm on drift in the model's top SHAP features and in its output
-   distribution, not only on the share of drifted features. *(reports/drift_simulation.md)*
+   distribution, not only on the share of drifted features. Diagnosed and fixed 20/20 false
+   alarms after the time-split switch (a stale reference period). *(reports/drift_simulation.md)*
 
-5. Restored ROC-AUC by 10% (0.607 → 0.668) against the stale deployed model on 14,851
+5. Restored ROC-AUC by 15% (0.590 → 0.679) against the stale deployed model on 14,901
    held-out encounters after a simulated EHR code remap. Drift triggered the retraining,
    and the model was promoted only because the gate measured a significant lift
-   (+0.061, CI +0.048 to +0.074). *(reports/drift_simulation.md)*
+   (+0.090, CI +0.074 to +0.106); for an ICD-10 recoding that barely hurt accuracy, the same
+   gate kept the champion. *(reports/drift_simulation.md)*
 
-6. Shipped CI/CD (GitHub Actions) that lints and runs 67 tests with a coverage floor, reproduces the DVC
+6. Shipped CI/CD (GitHub Actions) that lints and runs 71 tests with a coverage floor, reproduces the DVC
    pipeline on real data, gates the model, builds an immutable serving image with the
    champion baked in, and deploys it to a kind Kubernetes cluster to call `/predict` and
    run the drift CronJob on every push. *(.github/workflows/ci.yml)*
 
 7. Cut server-side `/predict` latency for single-record requests by 30× (about 21 ms →
-   0.70 ms; host end-to-end p50 3.2 ms over 1,000 calls on a laptop, 1.0 ms on a Ryzen 7
-   9800X3D desktop) against the scikit-learn pipeline.
-   The fix was a fast encoder built from the fitted preprocessor that only switches on
-   after it reproduces the sklearn probabilities to 1e-9, plus asynchronous inference
-   logging. *(reports/api_latency.json, README "Serving")*
+   0.70 ms) with a fast encoder built from the fitted preprocessor that only switches on
+   after it reproduces the sklearn probabilities to 1e-9. When XGBoost became champion the
+   check caught a mismatch (XGBoost reads absent sparse entries as missing); after the fix,
+   end-to-end p50 is 1.39 ms on a Ryzen 7 9800X3D desktop. *(README "Serving")*
 
 **Short version (one line):** Built a gated MLOps pipeline (MLflow, DVC, Evidently,
 Kubernetes) whose drift alarms caught 4/5 simulated shifts with 0 false alarms and whose
-statistical promotion gate correctly refused a non-significant XGBoost upgrade.
+statistical promotion gate, evaluated on a time-ordered split, promoted XGBoost on a
+significant +0.031 AUC lift.
