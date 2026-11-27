@@ -2,8 +2,8 @@
 
     python -m ml_pipeline.age_gap     # writes reports/age_gap.json and reports/age_gap.md
 
-The audit (`ml_pipeline.audit`) shows the logistic-regression baseline ranks patients under 40 far better than
-patients over 80 (test AUC 0.745 vs 0.619). This module answers three questions, with the
+The audit (`ml_pipeline.audit`) shows the logistic-regression baseline ranks patients under
+40 far better than patients over 80. This module answers three questions, with the
 same protocol as training (choices on train/val, test touched once at the end):
 
 1. **Where is the signal?** Univariate AUC of the prior-utilisation features and the

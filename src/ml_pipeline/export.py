@@ -3,9 +3,10 @@
     python -m ml_pipeline.export --out model_bundle
 
 The bundle holds the MLflow model directory, `metadata.json` (registry name, version,
-threshold, metrics) and `reference.parquet` (a reference sample with predictions, see `monitor.reference_split`, used by the
-drift monitor). The Docker image copies it in, so every image serves exactly one immutable
-model version and needs no access to the tracking server at runtime.
+threshold, metrics) and `reference.parquet` (a reference sample with predictions, see
+`monitor.reference_split`, used by the drift monitor). The Docker image copies it in, so every
+image serves exactly one immutable model version and needs no access to the tracking server
+at runtime.
 """
 
 from __future__ import annotations
