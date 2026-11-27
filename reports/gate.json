@@ -1,15 +1,19 @@
 {
-  "challenger_version": 4,
-  "reference_version": 3,
-  "reference_kind": "baseline",
+  "challenger_version": 6,
+  "reference_version": 4,
+  "reference_kind": "xgboost",
   "challenger_auc": 0.6765608592017267,
-  "reference_auc": 0.6452299997500405,
-  "auc_lift": 0.03133085945168623,
-  "auc_lift_ci_low": 0.02377789959427875,
-  "auc_lift_ci_high": 0.03866573734900405,
+  "reference_auc": 0.6765608592017267,
+  "auc_lift": 0.0,
+  "auc_lift_ci_low": 0.0,
+  "auc_lift_ci_high": 0.0,
   "challenger_brier": 0.09149937331676483,
-  "reference_brier": 0.09324501983491813,
+  "reference_brier": 0.09149937331676483,
   "min_auc_lift": 0.01,
-  "passed": true,
-  "reasons": []
+  "passed": false,
+  "reasons": [
+    "AUC lift +0.0000 < required +0.0100",
+    "lift CI lower bound +0.0000 is not above 0"
+  ],
+  "reference_note": ""
 }

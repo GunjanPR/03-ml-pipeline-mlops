@@ -34,8 +34,8 @@
     "roc_auc_ci_low": 0.6628094913186044,
     "roc_auc_ci_high": 0.6906497320433271
   },
-  "fit_seconds": 68.81024119999995,
-  "predict_ms_per_1k_rows": 7.535876786792199,
+  "fit_seconds": 67.07779320000009,
+  "predict_ms_per_1k_rows": 7.5091336152109065,
   "top_features": [
     {
       "feature": "discharge_disposition_id_15",
@@ -85,6 +85,6 @@
     "number_inpatient",
     "diag_3_group"
   ],
-  "mlflow_run_id": "be4b254d680340be9506d3a19eebe75e",
-  "registered_version": 4
+  "mlflow_run_id": "f988b99f4a934612904189e6936892e5",
+  "registered_version": 6
 }

@@ -19,7 +19,7 @@
       "n_estimators": 162,
       "optuna_trials": 50
     },
-    "seconds": 82.3
+    "seconds": 71.4
   },
   "time:43:50": {
     "seed": 43,
@@ -41,7 +41,7 @@
       "n_estimators": 43,
       "optuna_trials": 50
     },
-    "seconds": 63.2
+    "seconds": 55.7
   },
   "time:44:50": {
     "seed": 44,
@@ -63,7 +63,7 @@
       "n_estimators": 134,
       "optuna_trials": 50
     },
-    "seconds": 72.4
+    "seconds": 71.5
   },
   "time:45:50": {
     "seed": 45,
@@ -85,7 +85,7 @@
       "n_estimators": 293,
       "optuna_trials": 50
     },
-    "seconds": 103.0
+    "seconds": 101.2
   },
   "time:46:50": {
     "seed": 46,
@@ -107,6 +107,6 @@
       "n_estimators": 68,
       "optuna_trials": 50
     },
-    "seconds": 57.5
+    "seconds": 56.9
   }
 }

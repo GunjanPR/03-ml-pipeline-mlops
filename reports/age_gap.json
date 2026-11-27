@@ -88,7 +88,7 @@
     }
   },
   "model_attempts": {
-    "logistic regression (champion recipe)": {
+    "logistic regression (baseline recipe)": {
       "all": 0.6437643444246955,
       "<40": 0.7509399107572624,
       "40-59": 0.6721422754312786,

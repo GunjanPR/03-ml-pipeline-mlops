@@ -25,8 +25,8 @@
     "roc_auc_ci_low": 0.6298912412044558,
     "roc_auc_ci_high": 0.6598078169243952
   },
-  "fit_seconds": 1.6891756999999643,
-  "predict_ms_per_1k_rows": 4.736266022409783,
+  "fit_seconds": 1.5905809000000772,
+  "predict_ms_per_1k_rows": 4.583484329901031,
   "top_features": [
     {
       "feature": "discharge_disposition_id_1",
@@ -76,6 +76,6 @@
     "diag_2_group",
     "age"
   ],
-  "mlflow_run_id": "0cc140f8f79849a894aec55b14520af3",
-  "registered_version": 3
+  "mlflow_run_id": "d3d7006c626343bb8c28129eb4e47903",
+  "registered_version": 5
 }

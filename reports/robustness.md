@@ -10,7 +10,7 @@ ROC-AUC CIs are 1,000-sample bootstraps; lifts use the paired bootstrap from the
 | Score | Test ROC-AUC (95% CI) |
 |---|---|
 | LACE (computed from this extract) | 0.590 (0.576-0.603) |
-| Logistic regression (champion) | 0.645 (0.630-0.660) |
+| Logistic regression (baseline) | 0.645 (0.630-0.660) |
 | XGBoost (committed run) | 0.677 (0.663-0.689) |
 
 Logistic regression minus LACE: +0.0552 (+0.0387, +0.0727). XGBoost minus LACE:

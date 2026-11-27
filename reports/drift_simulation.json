@@ -6,79 +6,79 @@
       "scenario": "no_shift",
       "batches": 20,
       "alarm_rate": 1.0,
-      "share_rule_rate": 0.95,
+      "share_rule_rate": 0.0,
       "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.3204081632653061,
-      "prediction_drift_rate": 0.15,
+      "mean_drift_share": 0.06530612244897958,
+      "prediction_drift_rate": 0.0,
       "roc_auc": 0.6723021120467237,
       "positive_rate": 0.10605,
       "mean_prediction": 0.11909215152263641,
-      "most_flagged": "admission_source_id, admission_type_id, diag_2_group"
+      "most_flagged": "medical_specialty, number_diagnoses, payer_code"
     },
     {
       "scenario": "older_sicker",
       "batches": 20,
       "alarm_rate": 1.0,
-      "share_rule_rate": 1.0,
+      "share_rule_rate": 0.0,
       "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.3816326530612245,
+      "mean_drift_share": 0.18061224489795918,
       "prediction_drift_rate": 1.0,
       "roc_auc": 0.6548574352323435,
       "positive_rate": 0.146,
       "mean_prediction": 0.15041384100914001,
-      "most_flagged": "admission_source_id, admission_type_id, age"
+      "most_flagged": "age, medical_specialty, number_diagnoses"
     },
     {
       "scenario": "emergency_intake",
       "batches": 20,
       "alarm_rate": 1.0,
-      "share_rule_rate": 1.0,
+      "share_rule_rate": 0.0,
       "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.36020408163265305,
-      "prediction_drift_rate": 0.95,
+      "mean_drift_share": 0.11326530612244898,
+      "prediction_drift_rate": 0.0,
       "roc_auc": 0.6677287636261122,
       "positive_rate": 0.1139,
       "mean_prediction": 0.1241992935538292,
-      "most_flagged": "admission_source_id, admission_type_id, diag_2_group"
+      "most_flagged": "admission_source_id, admission_type_id, medical_specialty"
     },
     {
       "scenario": "icd10_migration",
       "batches": 20,
       "alarm_rate": 1.0,
-      "share_rule_rate": 1.0,
+      "share_rule_rate": 0.0,
       "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.35918367346938773,
-      "prediction_drift_rate": 0.05,
+      "mean_drift_share": 0.12551020408163266,
+      "prediction_drift_rate": 0.25,
       "roc_auc": 0.662023134551651,
       "positive_rate": 0.10674999999999998,
       "mean_prediction": 0.11757979542016983,
-      "most_flagged": "admission_source_id, admission_type_id, diag_1_group"
+      "most_flagged": "diag_1_group, diag_2_group, diag_3_group"
     },
     {
       "scenario": "lab_panel_change",
       "batches": 20,
-      "alarm_rate": 1.0,
-      "share_rule_rate": 0.9,
-      "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.32142857142857145,
-      "prediction_drift_rate": 0.5,
+      "alarm_rate": 0.95,
+      "share_rule_rate": 0.0,
+      "key_feature_rule_rate": 0.95,
+      "mean_drift_share": 0.062244897959183663,
+      "prediction_drift_rate": 0.05,
       "roc_auc": 0.6734382787169492,
       "positive_rate": 0.1061,
       "mean_prediction": 0.1205313429236412,
-      "most_flagged": "admission_source_id, admission_type_id, diag_2_group"
+      "most_flagged": "num_lab_procedures, medical_specialty, number_diagnoses"
     },
     {
       "scenario": "discharge_code_remap",
       "batches": 20,
       "alarm_rate": 1.0,
-      "share_rule_rate": 0.9,
+      "share_rule_rate": 0.0,
       "key_feature_rule_rate": 1.0,
-      "mean_drift_share": 0.3183673469387755,
+      "mean_drift_share": 0.07959183673469387,
       "prediction_drift_rate": 1.0,
       "roc_auc": 0.5867947295145098,
       "positive_rate": 0.10715000000000001,
       "mean_prediction": 0.157974511384964,
-      "most_flagged": "admission_source_id, admission_type_id, discharge_disposition_id"
+      "most_flagged": "discharge_disposition_id, medical_specialty, number_diagnoses"
     }
   ],
   "retrain_demo": [
@@ -109,6 +109,6 @@
     "scenario": "older_sicker",
     "rows": 1000,
     "drifted": true,
-    "drift_share": 0.3877551020408163
+    "drift_share": 0.2653061224489796
   }
 }
