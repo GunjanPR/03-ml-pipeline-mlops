@@ -13,6 +13,10 @@ reproducible with one command.
   0.677 vs 0.668 for the logistic-regression baseline on 14,851 held-out encounters. The
   lift is real (paired-bootstrap 95% CI [+0.001, +0.016]) but below the +0.01 the gate
   requires to swap models, so the simpler model stays in production.
+* **Checked against a clinical score and a time split.** Both models beat the LACE
+  readmission index (0.572) by about +0.10 AUC. The blocked decision held across 5 Optuna seeds
+  (lift +0.007 to +0.009), but on a time-ordered split XGBoost's lift grows to +0.029 and would
+  pass the gate; see [Robustness](#robustness-of-the-comparison-reportsrobustnessmd).
 * **Audited, not just scored.** Both models are well calibrated (ECE 0.0075 and 0.0039).
   Flagging the top 10% of risk scores catches 24-25% of readmissions, 2.4-2.5× random. The
   largest subgroup gap is age, not race or sex: AUC 0.745 under 40 vs 0.619 over 80 for the
@@ -213,6 +217,28 @@ What did not help (measured, kept for honesty):
 This matches published work on this dataset, where ROC-AUC tops out around 0.65-0.70: the
 remaining signal is not in these administrative fields. SHAP puts discharge disposition,
 prior inpatient stays, missing payer code and missing specialty at the top for both models.
+
+### Robustness of the comparison (`reports/robustness.md`)
+
+Four checks a reviewer would ask for, all on the same 14,851 test rows as the gate
+(`python -m ml_pipeline.robustness --seeds 5`, a DVC stage; run on the Ryzen 7 9800X3D desktop).
+
+| Question | Result |
+|---|---|
+| Does either model beat the clinical score nurses already use? | **Yes.** LACE index computed from this extract: ROC-AUC 0.572 (0.557-0.586). Logistic regression is +0.096 over it (CI +0.080 to +0.114), XGBoost +0.103. |
+| Was the baseline weakened by leaving it untuned? | **No.** C tuned on val over an 11-point grid picks C = 0.01: test 0.667 vs 0.668 at C = 1 (−0.0012, CI −0.0047 to +0.0025). XGBoost is still +0.0081 (+0.0016 to +0.0148) over the tuned baseline. |
+| Is the "blocked" decision an accident of one Optuna seed? | **No.** Five 50-trial searches (seeds 42-46) give lifts of +0.0066 to +0.0094 (mean +0.0082, SD 0.0011). The gate would block all 5. The lift is real in 4 of 5 (CI above 0) and below +0.01 in all 5. |
+| Does a random patient-grouped split flatter the models? | **It flatters the baseline.** On a time-ordered split (train on the earliest 70% of encounters, test on the latest 15%), logistic regression drops to 0.645, XGBoost holds at 0.674, and the lift grows to **+0.029 (CI +0.022 to +0.036)**, which would pass the gate. LACE scores 0.590. |
+
+What this changes: on random splits the gate's decision is stable, but under a time-ordered
+evaluation XGBoost would be promoted. That is the split that resembles deployment, so the
+next step is to make the gate's test split time-ordered too. Caveats: LACE is approximated
+(ED visits from the prior year rather than 6 months, Charlson from the three diagnosis codes the
+extract keeps), so it is a reasonable proxy, not the validated score. The time-split XGBoost
+uses parameters tuned on the random split's val, and 16.4% of time-split test encounters
+belong to patients seen in train (allowed, since a deployed model sees returning patients). The
+test split has now informed several decisions (gate, these checks), so it is no longer a
+pristine holdout. A fresh time-ordered holdout would be the honest final check.
 
 ### Calibration, decision value and subgroups (`reports/audit.md`)
 

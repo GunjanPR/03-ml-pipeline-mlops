@@ -98,3 +98,26 @@ stages:
     outs:
       - reports/age_gap.md:
           cache: false
+
+  # Robustness of the model comparison: LACE clinical baseline, tuned logistic regression,
+  # XGBoost tuning variance over Optuna seeds, and a time-ordered split.
+  robustness:
+    cmd: python -m ml_pipeline.robustness --seeds 5
+    deps:
+      - data/raw/diabetic_data.csv
+      - data/processed
+      - src/ml_pipeline/robustness.py
+      - src/ml_pipeline/train.py
+      - src/ml_pipeline/features.py
+    params:
+      - random_seed
+      - optuna_n_trials
+      - min_auc_lift
+    metrics:
+      - reports/robustness.json:
+          cache: false
+    outs:
+      - reports/robustness.md:
+          cache: false
+      - reports/robustness_xgb_seeds.json:
+          cache: false

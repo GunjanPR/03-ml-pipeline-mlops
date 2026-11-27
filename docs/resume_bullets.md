@@ -20,6 +20,12 @@ github.com/GunjanPR/03-ml-pipeline-mlops
    model in production. Re-running the search on another OS moved the tuned model's AUC by
    0.005, which is why the bar exists. *(reports/gate.json, README "Reproducibility")*
 
+2b. Stress-tested the model comparison: both models beat the LACE clinical readmission index
+   (AUC 0.572) by about +0.10; tuning the baseline changed nothing (−0.001); the blocked
+   decision held across 5 Optuna seeds (lift +0.007 to +0.009); and a time-ordered split
+   showed the random split flatters the baseline (XGBoost lift +0.029, CI +0.022 to +0.036).
+   *(reports/robustness.md)*
+
 3. Built a pre-deployment model audit (calibration ECE, top-k capture, subgroup AUC and
    sensitivity with bootstrap CIs) as a DVC stage. Both models are calibrated (ECE ≤ 0.008),
    the top 10% of scores catches 2.4× the random share of readmissions, and the largest gap
